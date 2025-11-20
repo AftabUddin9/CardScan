@@ -73,9 +73,9 @@ class _CustomButtonState extends State<CustomButton>
         scale: _scaleAnimation,
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -100,13 +100,13 @@ class _CustomButtonState extends State<CustomButton>
               BoxShadow(
                 color: (widget.backgroundColor ?? const Color(0xFF3B82F6))
                     .withOpacity(0.4),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
               ),
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
               child: Row(
@@ -115,8 +115,8 @@ class _CustomButtonState extends State<CustomButton>
                 children: [
                   if (widget.isLoading)
                     const SizedBox(
-                      width: 20,
-                      height: 20,
+                      width: 16,
+                      height: 16,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
                         valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
@@ -126,18 +126,18 @@ class _CustomButtonState extends State<CustomButton>
                     Icon(
                       widget.icon,
                       color: widget.textColor ?? Colors.white,
-                      size: 20,
+                      size: 18,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                   ],
                   if (!widget.isLoading) ...[
                     Text(
                       widget.text,
                       style: TextStyle(
                         color: widget.textColor ?? Colors.white,
-                        fontSize: 16,
+                        fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
+                        letterSpacing: 0.3,
                       ),
                     ),
                   ],

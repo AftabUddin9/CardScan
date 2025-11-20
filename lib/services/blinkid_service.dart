@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'package:flutter/services.dart';
 import 'package:blinkid_flutter/blinkid_flutter.dart';
 import '../models/card_data.dart';
 
@@ -12,6 +13,9 @@ class BlinkIDService {
       'sRwCABRjb20uZXhhbXBsZS5jYXJkc2NhbgBsZXlKRGNtVmhkR1ZrVDI0aU9qRTNOak0yTWpNd05EazFOemtzSWtOeVpXRjBaV1JHYjNJaU9pSTBNREF3Tm1NeE1DMWxPVEUyTFRRMVlqVXRZbVJpWWkweE1EYzBNRFE0T1RJM1lUTWlmUT093qO2Xfcr1cAO4h+iOcn/rY+aLXY+DvcDnV7sqDCbsuPpM4o47jMLBdUhocmyyd+6iBLjlfDBgUvPwC9nWYI9PVB+6pEEfQptC4aYBBHow4B0hCJgIYyp9rXGAzjTjw==';
 
   bool _isSdkLoaded = false;
+  // Reuse the same plugin instance
+  // ignore: undefined_identifier
+  BlinkidFlutter? _blinkidPlugin;
 
   // Get the appropriate license key for the current platform
   String get _licenseKey {
@@ -31,22 +35,33 @@ class BlinkIDService {
     return settings;
   }
 
+  /// Get or create BlinkID plugin instance
+  // ignore: undefined_identifier
+  BlinkidFlutter get _plugin {
+    _blinkidPlugin ??= BlinkidFlutter();
+    return _blinkidPlugin!;
+  }
+
   /// Initialize and load the BlinkID SDK
   Future<void> _ensureSdkLoaded() async {
     if (_isSdkLoaded) return;
 
     try {
-      // Initialize BlinkID plugin
-      // Note: If you get analyzer errors here, check the actual exported class name
-      // The class should be available at runtime - use IDE autocomplete to verify
+      // Load SDK with proper error handling
       // ignore: undefined_identifier
-      final blinkidPlugin = BlinkidFlutter();
-      // ignore: undefined_identifier
-      await blinkidPlugin.loadBlinkIdSdk(_sdkSettings);
+      await _plugin.loadBlinkIdSdk(_sdkSettings);
       _isSdkLoaded = true;
-    } catch (e) {
+    } on PlatformException catch (e) {
+      // ignore: avoid_print
+      print('Platform error loading BlinkID SDK: ${e.code} - ${e.message}');
+      _isSdkLoaded = false;
+      throw Exception('Failed to load BlinkID SDK: ${e.message ?? e.code}');
+    } catch (e, stackTrace) {
       // ignore: avoid_print
       print('Error loading BlinkID SDK: $e');
+      // ignore: avoid_print
+      print('Stack trace: $stackTrace');
+      _isSdkLoaded = false;
       rethrow;
     }
   }
@@ -55,6 +70,7 @@ class BlinkIDService {
   /// Uses the default BlinkID UX scanning experience
   Future<CardData?> scanWithCamera() async {
     try {
+      // Ensure SDK is loaded first
       await _ensureSdkLoaded();
 
       // Configure session settings
@@ -84,9 +100,7 @@ class BlinkIDService {
 
       // Perform scan with camera using default UX
       // ignore: undefined_identifier
-      final blinkidPlugin = BlinkidFlutter();
-      // ignore: undefined_identifier
-      final result = await blinkidPlugin.performScan(
+      final result = await _plugin.performScan(
         _sdkSettings,
         sessionSettings,
         uiSettings,
@@ -97,10 +111,16 @@ class BlinkIDService {
       }
 
       return null;
-    } catch (e) {
+    } on PlatformException catch (e) {
+      // ignore: avoid_print
+      print('Platform error during camera scan: ${e.code} - ${e.message}');
+      throw Exception('Camera scan failed: ${e.message ?? e.code}');
+    } catch (e, stackTrace) {
       // ignore: avoid_print
       print('Error scanning with camera: $e');
-      rethrow;
+      // ignore: avoid_print
+      print('Stack trace: $stackTrace');
+      throw Exception('Failed to scan card: ${e.toString()}');
     }
   }
 
@@ -134,9 +154,7 @@ class BlinkIDService {
 
       // Perform DirectAPI scan from image
       // ignore: undefined_identifier
-      final blinkidPlugin = BlinkidFlutter();
-      // ignore: undefined_identifier
-      final result = await blinkidPlugin.performDirectApiScan(
+      final result = await _plugin.performDirectApiScan(
         _sdkSettings,
         sessionSettings,
         imageBase64,
@@ -214,9 +232,7 @@ class BlinkIDService {
     if (_isSdkLoaded) {
       try {
         // ignore: undefined_identifier
-        final blinkidPlugin = BlinkidFlutter();
-        // ignore: undefined_identifier
-        await blinkidPlugin.unloadBlinkIdSdk(deleteCachedResources: deleteCachedResources);
+        await _plugin.unloadBlinkIdSdk(deleteCachedResources: deleteCachedResources);
         _isSdkLoaded = false;
       } catch (e) {
         // ignore: avoid_print

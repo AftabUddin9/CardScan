@@ -24,10 +24,13 @@ android {
         applicationId = "com.example.cardscan"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = 24  // BlinkID requires API 24 minimum
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        // Enable multidex if needed
+        multiDexEnabled = true
     }
 
     buildTypes {

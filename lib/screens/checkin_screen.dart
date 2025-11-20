@@ -55,27 +55,30 @@ class _CheckInScreenState extends State<CheckInScreen> {
     });
 
     try {
-      // Note: You'll need to implement actual BlinkID scanning here
-      // For now, this is a placeholder structure
       final result = await _blinkIDService.scanWithCamera();
       
       setState(() {
         _isScanning = false;
-        if (result != null) {
+        if (result != null && !result.isEmpty) {
           _parsedData = result;
           // Auto-fill manual input if data is parsed
           if (result.fullName != null) {
             _manualInputController.text = result.fullName!;
+          } else if (result.documentNumber != null) {
+            _manualInputController.text = result.documentNumber!;
           }
         }
       });
 
-      if (result == null) {
-        _showError('Failed to scan card. Please try again.');
+      if (result == null || result.isEmpty) {
+        _showError('Failed to scan card. Please try again or enter manually.');
       }
     } catch (e) {
       setState(() => _isScanning = false);
-      _showError('Error scanning: ${e.toString()}');
+      final errorMessage = e.toString().replaceAll('Exception: ', '');
+      _showError('Scanning error: $errorMessage');
+      // ignore: avoid_print
+      print('Detailed error: $e');
     }
   }
 
@@ -179,7 +182,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
       body: GradientBackground(
         child: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(16),
             child: Form(
               key: _formKey,
               child: Column(
@@ -197,7 +200,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
                           isLoading: _isScanning,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: CustomButton(
                           text: 'Upload Image',
@@ -209,21 +212,21 @@ class _CheckInScreenState extends State<CheckInScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
 
                   // Image Preview Section
                   if (_selectedImage != null || _isScanning)
                     Container(
-                      height: 200,
+                      height: 160,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: Colors.white.withOpacity(0.2),
                           width: 1.5,
                         ),
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                         child: _isScanning && _selectedImage == null
                             ? Container(
                                 color: Colors.black.withOpacity(0.3),
@@ -244,7 +247,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
                       ),
                     ),
                   if (_selectedImage != null || _isScanning)
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
 
                   // Manual Input Field
                   CustomTextField(
@@ -259,14 +262,14 @@ class _CheckInScreenState extends State<CheckInScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
 
                   // Parsed Data Section
                   if (_parsedData != null && !_parsedData!.isEmpty)
                     Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                         gradient: LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
@@ -288,20 +291,20 @@ class _CheckInScreenState extends State<CheckInScreen> {
                               Icon(
                                 Icons.check_circle,
                                 color: Colors.green,
-                                size: 20,
+                                size: 18,
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 6),
                               Text(
                                 'Parsed Data',
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: 16,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
                           if (_parsedData!.fullName != null)
                             _buildDataRow('Full Name', _parsedData!.fullName!),
                           if (_parsedData!.firstName != null)
@@ -355,17 +358,17 @@ class _CheckInScreenState extends State<CheckInScreen> {
 
   Widget _buildDataRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 120,
+            width: 100,
             child: Text(
               label,
               style: TextStyle(
                 color: Colors.white.withOpacity(0.7),
-                fontSize: 14,
+                fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -375,7 +378,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
               value,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 14,
+                fontSize: 12,
                 fontWeight: FontWeight.w400,
               ),
             ),

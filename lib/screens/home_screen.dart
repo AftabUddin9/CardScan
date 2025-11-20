@@ -33,8 +33,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 32,
+                      horizontal: 20,
+                      vertical: 20,
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -46,24 +46,24 @@ class _HomeScreenState extends State<HomeScreen> {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 36,
+                            fontSize: 28,
                             fontWeight: FontWeight.bold,
-                            letterSpacing: 1.5,
+                            letterSpacing: 1.0,
                             height: 1.2,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         Text(
                           'Identity Verification System',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.85),
-                            fontSize: 16,
-                            letterSpacing: 0.8,
+                            fontSize: 13,
+                            letterSpacing: 0.5,
                             fontWeight: FontWeight.w400,
                           ),
                         ),
-                        const SizedBox(height: 28),
+                        const SizedBox(height: 20),
                         // Action Cards
                         ActionCard(
                           title: 'Check In',
@@ -78,7 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             );
                           },
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 10),
                         ActionCard(
                           title: 'Check Out',
                           icon: Icons.logout,
@@ -92,7 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             );
                           },
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 10),
                         ActionCard(
                           title: 'Login',
                           icon: Icons.person,
