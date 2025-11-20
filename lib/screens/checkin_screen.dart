@@ -34,10 +34,19 @@ class _CheckInScreenState extends State<CheckInScreen> {
   }
 
   Future<void> _requestPermissions() async {
-    await [
-      Permission.camera,
-      Permission.photos,
-    ].request();
+    // Request camera permission
+    await Permission.camera.request();
+    
+    // Request storage permissions based on platform
+    if (Platform.isAndroid) {
+      // For Android 13+ (API 33+), use READ_MEDIA_IMAGES
+      // For Android 12 and below, use READ_EXTERNAL_STORAGE
+      // Permission.photos handles this automatically
+      await Permission.photos.request();
+    } else {
+      // For iOS, use photos permission
+      await Permission.photos.request();
+    }
   }
 
   Future<void> _scanWithCamera() async {

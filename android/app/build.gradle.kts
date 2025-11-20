@@ -42,6 +42,11 @@ android {
     }
 }
 
+dependencies {
+    // Multidex support (required when multiDexEnabled = true)
+    implementation("androidx.multidex:multidex:2.0.1")
+}
+
 flutter {
     source = "../.."
 }
