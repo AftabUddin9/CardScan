@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.cardscan"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -25,12 +25,17 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 24  // BlinkID requires API 24 minimum
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 34
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         
         // Enable multidex if needed
         multiDexEnabled = true
+        
+        // NDK architecture filters - BlinkID requires ARM architectures only
+        ndk {
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
+        }
     }
 
     buildTypes {

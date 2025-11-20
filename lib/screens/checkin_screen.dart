@@ -8,6 +8,7 @@ import '../widgets/custom_text_field.dart';
 import '../widgets/custom_button.dart';
 import '../models/card_data.dart';
 import '../services/blinkid_service.dart';
+import '../services/mlkit_service.dart';
 
 class CheckInScreen extends StatefulWidget {
   const CheckInScreen({super.key});
@@ -20,6 +21,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
   final _formKey = GlobalKey<FormState>();
   final _manualInputController = TextEditingController();
   final _blinkIDService = BlinkIDService();
+  final _mlKitService = MLKitService();
   final _imagePicker = ImagePicker();
 
   File? _selectedImage;
@@ -30,6 +32,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
   @override
   void dispose() {
     _manualInputController.dispose();
+    _mlKitService.dispose();
     super.dispose();
   }
 
@@ -80,14 +83,14 @@ class _CheckInScreenState extends State<CheckInScreen> {
       });
 
       if (result == null || result.isEmpty) {
-        _showError('Failed to scan card. Please try again or enter manually.');
+        _showError('BlinkID is not available on this device/emulator. Please use "Upload Image" to scan from gallery, or enter manually.');
       }
     } catch (e) {
       setState(() => _isScanning = false);
       final errorMessage = e.toString().replaceAll('Exception: ', '');
-      _showError('Scanning error: $errorMessage');
       // ignore: avoid_print
-      print('Detailed error: $e');
+      print('Camera scan error: $errorMessage');
+      _showError('Camera scanning is not available. Please use "Upload Image" to scan from gallery, or enter manually.');
     }
   }
 
@@ -112,27 +115,49 @@ class _CheckInScreenState extends State<CheckInScreen> {
           _isScanning = true;
         });
 
-        // Scan the image with BlinkID
+        // Try BlinkID first, then fallback to ML Kit
+        CardData? result;
+        
         try {
-          final result = await _blinkIDService.scanFromImage(_selectedImage!);
+          // Try BlinkID first
+          result = await _blinkIDService.scanFromImage(_selectedImage!);
           
-          setState(() {
-            _isScanning = false;
-            if (result != null) {
-              _parsedData = result;
-              // Auto-fill manual input if data is parsed
-              if (result.fullName != null) {
-                _manualInputController.text = result.fullName!;
-              }
-            }
-          });
-
-          if (result == null) {
-            _showError('Failed to parse card data from image.');
+          // If BlinkID fails, use ML Kit as fallback
+          if (result == null || result.isEmpty) {
+            // ignore: avoid_print
+            print('BlinkID failed, trying ML Kit fallback...');
+            result = await _mlKitService.recognizeTextFromImage(_selectedImage!);
           }
         } catch (e) {
-          setState(() => _isScanning = false);
-          _showError('Error parsing image: ${e.toString()}');
+          // ignore: avoid_print
+          print('BlinkID error, trying ML Kit fallback: $e');
+          // Try ML Kit as fallback
+          try {
+            result = await _mlKitService.recognizeTextFromImage(_selectedImage!);
+          } catch (mlKitError) {
+            // ignore: avoid_print
+            print('ML Kit error: $mlKitError');
+          }
+        }
+        
+        setState(() {
+          _isScanning = false;
+          if (result != null && !result.isEmpty) {
+            _parsedData = result;
+            // Auto-fill manual input if data is parsed
+            if (result.fullName != null) {
+              _manualInputController.text = result.fullName!;
+            } else if (result.documentNumber != null) {
+              _manualInputController.text = result.documentNumber!;
+            } else if (result.rawText != null && result.rawText!.isNotEmpty) {
+              // Use raw text if available
+              _manualInputController.text = result.rawText!.split('\n').first;
+            }
+          }
+        });
+
+        if (result == null || result.isEmpty) {
+          _showError('Failed to parse card data. Please try again or enter manually.');
         }
       }
     } catch (e) {

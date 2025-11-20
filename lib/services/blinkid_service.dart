@@ -42,6 +42,9 @@ class BlinkIDService {
     return _blinkidPlugin!;
   }
 
+  /// Check if BlinkID is available (native library loaded)
+  bool get isAvailable => _isSdkLoaded;
+
   /// Initialize and load the BlinkID SDK
   Future<void> _ensureSdkLoaded() async {
     if (_isSdkLoaded) return;
@@ -55,14 +58,42 @@ class BlinkIDService {
       // ignore: avoid_print
       print('Platform error loading BlinkID SDK: ${e.code} - ${e.message}');
       _isSdkLoaded = false;
-      throw Exception('Failed to load BlinkID SDK: ${e.message ?? e.code}');
+      
+      // Check for native library errors (common on emulators)
+      if (e.message?.contains('libBlinkID.so') == true || 
+          e.message?.contains('UnsatisfiedLinkError') == true ||
+          e.message?.contains('library') == true) {
+        // ignore: avoid_print
+        print('BlinkID native library not available. This may happen on emulators or unsupported architectures.');
+        // Don't throw - allow fallback to ML Kit
+        return;
+      }
+      
+      // Check for common error codes
+      if (e.code == 'LICENSE_ERROR' || e.message?.contains('license') == true) {
+        // ignore: avoid_print
+        print('BlinkID license error');
+        // Don't throw - allow fallback
+        return;
+      } else if (e.code == 'NETWORK_ERROR' || e.message?.contains('network') == true) {
+        // ignore: avoid_print
+        print('BlinkID network error');
+        // Don't throw - allow fallback
+        return;
+      } else {
+        // ignore: avoid_print
+        print('BlinkID SDK load failed: ${e.message ?? e.code}');
+        // Don't throw - allow fallback
+        return;
+      }
     } catch (e, stackTrace) {
       // ignore: avoid_print
       print('Error loading BlinkID SDK: $e');
       // ignore: avoid_print
       print('Stack trace: $stackTrace');
       _isSdkLoaded = false;
-      rethrow;
+      // Don't rethrow - allow fallback to ML Kit
+      // This prevents app crashes when BlinkID is not available
     }
   }
 
@@ -70,8 +101,15 @@ class BlinkIDService {
   /// Uses the default BlinkID UX scanning experience
   Future<CardData?> scanWithCamera() async {
     try {
-      // Ensure SDK is loaded first
+      // Try to load SDK, but handle errors gracefully
       await _ensureSdkLoaded();
+      
+      // Check if SDK is actually loaded
+      if (!_isSdkLoaded) {
+        // ignore: avoid_print
+        print('BlinkID SDK not available - native library may not be supported on this device/emulator');
+        return null; // Return null to allow fallback
+      }
 
       // Configure session settings
       final sessionSettings = BlinkIdSessionSettings();
@@ -79,7 +117,9 @@ class BlinkIDService {
 
       // Configure scanning settings
       final scanningSettings = BlinkIdScanningSettings();
+      scanningSettings.anonymizationMode = AnonymizationMode.fullResult;
       scanningSettings.glareDetectionLevel = DetectionLevel.mid;
+      scanningSettings.blurDetectionLevel = DetectionLevel.mid;
 
       // Configure image settings
       final imageSettings = CroppedImageSettings();
@@ -128,7 +168,15 @@ class BlinkIDService {
   /// Uses DirectAPI scanning for static images
   Future<CardData?> scanFromImage(File imageFile) async {
     try {
+      // Try to load SDK, but don't fail if it doesn't work
       await _ensureSdkLoaded();
+      
+      // Check if SDK is actually loaded
+      if (!_isSdkLoaded) {
+        // ignore: avoid_print
+        print('BlinkID SDK not available, will use ML Kit fallback');
+        return null; // Return null to trigger fallback
+      }
 
       // Configure session settings
       final sessionSettings = BlinkIdSessionSettings();
@@ -136,7 +184,9 @@ class BlinkIDService {
 
       // Configure scanning settings
       final scanningSettings = BlinkIdScanningSettings();
+      scanningSettings.anonymizationMode = AnonymizationMode.fullResult;
       scanningSettings.glareDetectionLevel = DetectionLevel.mid;
+      scanningSettings.blurDetectionLevel = DetectionLevel.mid;
 
       // Configure image settings
       final imageSettings = CroppedImageSettings();
@@ -165,65 +215,115 @@ class BlinkIDService {
       }
 
       return null;
+    } on PlatformException catch (e) {
+      // ignore: avoid_print
+      print('Platform error scanning from image: ${e.code} - ${e.message}');
+      // Return null instead of throwing to allow fallback
+      return null;
     } catch (e) {
       // ignore: avoid_print
-      print('Error scanning from image: $e');
-      rethrow;
+      print('Error scanning from image with BlinkID: $e');
+      // Return null instead of throwing to allow fallback
+      return null;
     }
   }
 
   /// Extract card data from BlinkID result
+  /// Based on BlinkID Flutter implementation guide
   CardData _extractCardData(BlinkIdScanningResult result) {
     try {
-      // Access the result data - structure may vary
-      // Try accessing single side results
-      final firstSide = (result as dynamic).firstSideResult;
-      final secondSide = (result as dynamic).secondSideResult;
-
-      // Get data from first side (front) or second side (back)
-      final firstData = firstSide?.data;
-      final secondData = secondSide?.data;
-
-      // Combine data from both sides, prioritizing first side
-      return CardData(
-        firstName: firstData?.firstName?.value ?? secondData?.firstName?.value,
-        lastName: firstData?.lastName?.value ?? secondData?.lastName?.value,
-        fullName: firstData?.fullName?.value ?? secondData?.fullName?.value,
-        documentNumber: firstData?.documentNumber?.value ?? secondData?.documentNumber?.value,
-        dateOfBirth: firstData?.dateOfBirth?.value?.toString() ?? secondData?.dateOfBirth?.value?.toString(),
-        expiryDate: firstData?.dateOfExpiry?.value?.toString() ?? secondData?.dateOfExpiry?.value?.toString(),
-        address: firstData?.address?.value ?? secondData?.address?.value,
-        nationality: firstData?.nationality?.value ?? secondData?.nationality?.value,
-        sex: firstData?.sex?.value ?? secondData?.sex?.value,
-        documentType: firstData?.documentClass?.name ?? secondData?.documentClass?.name,
-        rawText: firstData?.rawText ?? secondData?.rawText,
-      );
-    } catch (e) {
-      // If the structure is different, try accessing data directly
-      // ignore: avoid_print
-      print('Error extracting card data, trying alternative structure: $e');
+      // Extract personal information with multi-alphabet support
+      // Priority: value > latin > arabic > cyrillic > greek
+      String? firstName = result.firstName?.value ?? 
+                          result.firstName?.latin ?? 
+                          result.firstName?.arabic ?? 
+                          result.firstName?.cyrillic ?? 
+                          result.firstName?.greek;
       
-      // Try alternative: direct access to result properties
-      try {
-        final data = (result as dynamic).data ?? result;
-        return CardData(
-          firstName: data?.firstName?.value,
-          lastName: data?.lastName?.value,
-          fullName: data?.fullName?.value,
-          documentNumber: data?.documentNumber?.value,
-          dateOfBirth: data?.dateOfBirth?.value?.toString(),
-          expiryDate: data?.dateOfExpiry?.value?.toString(),
-          address: data?.address?.value,
-          nationality: data?.nationality?.value,
-          sex: data?.sex?.value,
-          documentType: data?.documentClass?.name,
-          rawText: data?.rawText,
-        );
-      } catch (e2) {
-        // ignore: avoid_print
-        print('Error with alternative extraction: $e2');
-        return CardData();
+      String? lastName = result.lastName?.value ?? 
+                         result.lastName?.latin ?? 
+                         result.lastName?.arabic ?? 
+                         result.lastName?.cyrillic ?? 
+                         result.lastName?.greek;
+      
+      String? fullName = result.fullName?.value ?? 
+                         result.fullName?.latin ?? 
+                         result.fullName?.arabic ?? 
+                         result.fullName?.cyrillic ?? 
+                         result.fullName?.greek;
+      
+      // Extract document information
+      String? documentNumber = result.documentNumber?.value ?? 
+                               result.documentNumber?.latin ?? 
+                               result.documentNumber?.arabic ?? 
+                               result.documentNumber?.cyrillic ?? 
+                               result.documentNumber?.greek;
+      
+      String? address = result.address?.value ?? 
+                        result.address?.latin ?? 
+                        result.address?.arabic ?? 
+                        result.address?.cyrillic ?? 
+                        result.address?.greek;
+      
+      // Extract dates - format as YYYY-MM-DD
+      String? dateOfBirth;
+      if (result.dateOfBirth?.date != null) {
+        final dob = result.dateOfBirth!.date!;
+        dateOfBirth = "${dob.year}-${dob.month.toString().padLeft(2, '0')}-${dob.day.toString().padLeft(2, '0')}";
       }
+      
+      String? expiryDate;
+      if (result.dateOfExpiry?.date != null) {
+        final expiry = result.dateOfExpiry!.date!;
+        expiryDate = "${expiry.year}-${expiry.month.toString().padLeft(2, '0')}-${expiry.day.toString().padLeft(2, '0')}";
+      }
+      
+      // Extract nationality
+      String? nationality;
+      if (result.nationality != null) {
+        nationality = result.nationality!.value ?? 
+                      result.nationality!.latin ?? 
+                      result.nationality!.arabic ?? 
+                      result.nationality!.cyrillic ?? 
+                      result.nationality!.greek;
+      }
+      
+      // Extract sex/gender
+      String? sex = result.sex?.value;
+      
+      // Extract document type from documentClassInfo
+      String? documentType = result.documentClassInfo?.documentType?.name;
+      
+      // Try to get raw text from MRZ if available
+      String? rawText;
+      if (result.subResults != null) {
+        for (var subResult in result.subResults!) {
+          if (subResult.mrz != null && subResult.mrz!.rawMRZString != null) {
+            rawText = subResult.mrz!.rawMRZString;
+            break;
+          }
+        }
+      }
+      
+      return CardData(
+        firstName: firstName,
+        lastName: lastName,
+        fullName: fullName,
+        documentNumber: documentNumber,
+        dateOfBirth: dateOfBirth,
+        expiryDate: expiryDate,
+        address: address,
+        nationality: nationality,
+        sex: sex,
+        documentType: documentType,
+        rawText: rawText,
+      );
+    } catch (e, stackTrace) {
+      // ignore: avoid_print
+      print('Error extracting card data: $e');
+      // ignore: avoid_print
+      print('Stack trace: $stackTrace');
+      return CardData();
     }
   }
 
