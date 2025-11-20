@@ -37,6 +37,7 @@ dependencies:
   blinkid_flutter: ^7.6.0
   image_picker: ^1.0.7
   permission_handler: ^11.3.0
+  google_mlkit_text_recognition: ^0.15.0
 
 dev_dependencies:
   flutter_test:
