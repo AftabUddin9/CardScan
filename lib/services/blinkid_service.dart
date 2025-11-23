@@ -160,6 +160,7 @@ class BlinkIDService {
         _sdkSettings,
         sessionSettings,
         uiSettings,
+        classFilter,
       );
 
       if (result != null) {
@@ -249,42 +250,13 @@ class BlinkIDService {
   CardData _extractCardData(BlinkIdScanningResult result) {
     try {
       // Extract personal information with multi-alphabet support
-      // Priority: value > latin > arabic > cyrillic > greek
-      String? firstName =
-          result.firstName?.value ??
-          result.firstName?.latin ??
-          result.firstName?.arabic ??
-          result.firstName?.cyrillic ??
-          result.firstName?.greek;
-
-      String? lastName =
-          result.lastName?.value ??
-          result.lastName?.latin ??
-          result.lastName?.arabic ??
-          result.lastName?.cyrillic ??
-          result.lastName?.greek;
-
-      String? fullName =
-          result.fullName?.value ??
-          result.fullName?.latin ??
-          result.fullName?.arabic ??
-          result.fullName?.cyrillic ??
-          result.fullName?.greek;
+      String? firstName = _getNativeString(result.firstName);
+      String? lastName = _getNativeString(result.lastName);
+      String? fullName = _getNativeString(result.fullName);
 
       // Extract document information
-      String? documentNumber =
-          result.documentNumber?.value ??
-          result.documentNumber?.latin ??
-          result.documentNumber?.arabic ??
-          result.documentNumber?.cyrillic ??
-          result.documentNumber?.greek;
-
-      String? address =
-          result.address?.value ??
-          result.address?.latin ??
-          result.address?.arabic ??
-          result.address?.cyrillic ??
-          result.address?.greek;
+      String? documentNumber = _getNativeString(result.documentNumber);
+      String? address = _getNativeString(result.address);
 
       // Extract dates - format as YYYY-MM-DD
       String? dateOfBirth;
@@ -304,12 +276,7 @@ class BlinkIDService {
       // Extract nationality
       String? nationality;
       if (result.nationality != null) {
-        nationality =
-            result.nationality!.value ??
-            result.nationality!.latin ??
-            result.nationality!.arabic ??
-            result.nationality!.cyrillic ??
-            result.nationality!.greek;
+        nationality = _getNativeString(result.nationality);
       }
 
       // Extract sex/gender
@@ -349,6 +316,56 @@ class BlinkIDService {
       print('Stack trace: $stackTrace');
       return CardData();
     }
+  }
+
+  /// Helper to extract string with preference for native script
+  /// Returns "Native (Latin)" if both are available and different
+  String? _getNativeString(StringResult? result) {
+    if (result == null) return null;
+
+    // Collect available scripts
+    final arabic = result.arabic;
+    final cyrillic = result.cyrillic;
+    final greek = result.greek;
+    final latin = result.latin;
+    final value = result.value;
+
+    // Check for Arabic
+    if (arabic != null && arabic.isNotEmpty) {
+      if (latin != null && latin.isNotEmpty && latin != arabic) {
+        return "$arabic ($latin)";
+      }
+      return arabic;
+    }
+
+    // Check for Cyrillic
+    if (cyrillic != null && cyrillic.isNotEmpty) {
+      if (latin != null && latin.isNotEmpty && latin != cyrillic) {
+        return "$cyrillic ($latin)";
+      }
+      return cyrillic;
+    }
+
+    // Check for Greek
+    if (greek != null && greek.isNotEmpty) {
+      if (latin != null && latin.isNotEmpty && latin != greek) {
+        return "$greek ($latin)";
+      }
+      return greek;
+    }
+
+    // For other scripts (like Bangla) where we might not have a specific property access
+    // or it relies on .value being the native script.
+    // If value is present and different from latin, assume value is native.
+    if (value != null && value.isNotEmpty) {
+      if (latin != null && latin.isNotEmpty && value != latin) {
+        return "$value ($latin)";
+      }
+      return value;
+    }
+
+    // Fallback to latin if value was empty or same
+    return latin ?? value;
   }
 
   /// Unload the SDK when done (optional, for cleanup)
