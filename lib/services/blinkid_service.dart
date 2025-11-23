@@ -14,7 +14,6 @@ class BlinkIDService {
 
   bool _isSdkLoaded = false;
   // Reuse the same plugin instance
-  // ignore: undefined_identifier
   BlinkidFlutter? _blinkidPlugin;
 
   // Get the appropriate license key for the current platform
@@ -36,7 +35,6 @@ class BlinkIDService {
   }
 
   /// Get or create BlinkID plugin instance
-  // ignore: undefined_identifier
   BlinkidFlutter get _plugin {
     _blinkidPlugin ??= BlinkidFlutter();
     return _blinkidPlugin!;
@@ -51,7 +49,6 @@ class BlinkIDService {
 
     try {
       // Load SDK with proper error handling
-      // ignore: undefined_identifier
       await _plugin.loadBlinkIdSdk(_sdkSettings);
       _isSdkLoaded = true;
     } on PlatformException catch (e) {
@@ -111,6 +108,10 @@ class BlinkIDService {
         return null; // Return null to allow fallback
       }
 
+      //more
+      final sdkSettings = BlinkIdSdkSettings(_licenseKey);
+      sdkSettings.downloadResources = true;
+
       // Configure session settings
       final sessionSettings = BlinkIdSessionSettings();
       sessionSettings.scanningMode = ScanningMode.automatic;
@@ -137,6 +138,16 @@ class BlinkIDService {
       uiSettings.showOnboardingDialog = false;
       uiSettings.allowHapticFeedback = true;
       uiSettings.preferredCamera = PreferredCamera.back;
+
+      //more
+      final classFilter = ClassFilter.withIncludedDocumentClasses([
+        DocumentFilter(Country.saudiArabia),
+        DocumentFilter(Country.bangladesh),
+        DocumentFilter(Country.pakistan),
+        DocumentFilter(Country.india),
+        DocumentFilter(Country.usa, Region.california, DocumentType.passport),
+        DocumentFilter(Country.uK),
+      ]);
 
       // Perform scan with camera using default UX
       // ignore: undefined_identifier
