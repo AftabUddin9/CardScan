@@ -8,7 +8,7 @@ class BlinkIDService {
   // License keys for iOS and Android
   static const String _iosLicenseKey =
       'sRwCABRjb20uZXhhbXBsZS5jYXJkc2NhbgFsZXlKRGNtVmhkR1ZrVDI0aU9qRTNOak0yTWpNd05EazBOamtzSWtOeVpXRjBaV1JHYjNJaU9pSTBNREF3Tm1NeE1DMWxPVEUyTFRRMVlqVXRZbVJpWWkweE1EYzBNRFE0T1RJM1lUTWlmUT09cGnOArKctQ1tmQ16k2M3s9ZFP987aY3pWSYOvjHW3d1vp7JgxZy3tvOK+fmLIH6XSbsQ+r38eytvqOuka+/hekZiWlv0JIayvw/z+uJMn4gBWjswQKOMOiWiGVPpFA==';
-  
+
   static const String _androidLicenseKey =
       'sRwCABRjb20uZXhhbXBsZS5jYXJkc2NhbgBsZXlKRGNtVmhkR1ZrVDI0aU9qRTNOak0yTWpNd05EazFOemtzSWtOeVpXRjBaV1JHYjNJaU9pSTBNREF3Tm1NeE1DMWxPVEUyTFRRMVlqVXRZbVJpWWkweE1EYzBNRFE0T1RJM1lUTWlmUT093qO2Xfcr1cAO4h+iOcn/rY+aLXY+DvcDnV7sqDCbsuPpM4o47jMLBdUhocmyyd+6iBLjlfDBgUvPwC9nWYI9PVB+6pEEfQptC4aYBBHow4B0hCJgIYyp9rXGAzjTjw==';
 
@@ -55,24 +55,27 @@ class BlinkIDService {
       // ignore: avoid_print
       print('Platform error loading BlinkID SDK: ${e.code} - ${e.message}');
       _isSdkLoaded = false;
-      
+
       // Check for native library errors (common on emulators)
-      if (e.message?.contains('libBlinkID.so') == true || 
+      if (e.message?.contains('libBlinkID.so') == true ||
           e.message?.contains('UnsatisfiedLinkError') == true ||
           e.message?.contains('library') == true) {
         // ignore: avoid_print
-        print('BlinkID native library not available. This may happen on emulators or unsupported architectures.');
+        print(
+          'BlinkID native library not available. This may happen on emulators or unsupported architectures.',
+        );
         // Don't throw - allow fallback to ML Kit
         return;
       }
-      
+
       // Check for common error codes
       if (e.code == 'LICENSE_ERROR' || e.message?.contains('license') == true) {
         // ignore: avoid_print
         print('BlinkID license error');
         // Don't throw - allow fallback
         return;
-      } else if (e.code == 'NETWORK_ERROR' || e.message?.contains('network') == true) {
+      } else if (e.code == 'NETWORK_ERROR' ||
+          e.message?.contains('network') == true) {
         // ignore: avoid_print
         print('BlinkID network error');
         // Don't throw - allow fallback
@@ -100,11 +103,13 @@ class BlinkIDService {
     try {
       // Try to load SDK, but handle errors gracefully
       await _ensureSdkLoaded();
-      
+
       // Check if SDK is actually loaded
       if (!_isSdkLoaded) {
         // ignore: avoid_print
-        print('BlinkID SDK not available - native library may not be supported on this device/emulator');
+        print(
+          'BlinkID SDK not available - native library may not be supported on this device/emulator',
+        );
         return null; // Return null to allow fallback
       }
 
@@ -114,7 +119,7 @@ class BlinkIDService {
 
       // Configure session settings
       final sessionSettings = BlinkIdSessionSettings();
-      sessionSettings.scanningMode = ScanningMode.automatic;
+      sessionSettings.scanningMode = ScanningMode.single;
 
       // Configure scanning settings
       final scanningSettings = BlinkIdScanningSettings();
@@ -181,7 +186,7 @@ class BlinkIDService {
     try {
       // Try to load SDK, but don't fail if it doesn't work
       await _ensureSdkLoaded();
-      
+
       // Check if SDK is actually loaded
       if (!_isSdkLoaded) {
         // ignore: avoid_print
@@ -245,66 +250,74 @@ class BlinkIDService {
     try {
       // Extract personal information with multi-alphabet support
       // Priority: value > latin > arabic > cyrillic > greek
-      String? firstName = result.firstName?.value ?? 
-                          result.firstName?.latin ?? 
-                          result.firstName?.arabic ?? 
-                          result.firstName?.cyrillic ?? 
-                          result.firstName?.greek;
-      
-      String? lastName = result.lastName?.value ?? 
-                         result.lastName?.latin ?? 
-                         result.lastName?.arabic ?? 
-                         result.lastName?.cyrillic ?? 
-                         result.lastName?.greek;
-      
-      String? fullName = result.fullName?.value ?? 
-                         result.fullName?.latin ?? 
-                         result.fullName?.arabic ?? 
-                         result.fullName?.cyrillic ?? 
-                         result.fullName?.greek;
-      
+      String? firstName =
+          result.firstName?.value ??
+          result.firstName?.latin ??
+          result.firstName?.arabic ??
+          result.firstName?.cyrillic ??
+          result.firstName?.greek;
+
+      String? lastName =
+          result.lastName?.value ??
+          result.lastName?.latin ??
+          result.lastName?.arabic ??
+          result.lastName?.cyrillic ??
+          result.lastName?.greek;
+
+      String? fullName =
+          result.fullName?.value ??
+          result.fullName?.latin ??
+          result.fullName?.arabic ??
+          result.fullName?.cyrillic ??
+          result.fullName?.greek;
+
       // Extract document information
-      String? documentNumber = result.documentNumber?.value ?? 
-                               result.documentNumber?.latin ?? 
-                               result.documentNumber?.arabic ?? 
-                               result.documentNumber?.cyrillic ?? 
-                               result.documentNumber?.greek;
-      
-      String? address = result.address?.value ?? 
-                        result.address?.latin ?? 
-                        result.address?.arabic ?? 
-                        result.address?.cyrillic ?? 
-                        result.address?.greek;
-      
+      String? documentNumber =
+          result.documentNumber?.value ??
+          result.documentNumber?.latin ??
+          result.documentNumber?.arabic ??
+          result.documentNumber?.cyrillic ??
+          result.documentNumber?.greek;
+
+      String? address =
+          result.address?.value ??
+          result.address?.latin ??
+          result.address?.arabic ??
+          result.address?.cyrillic ??
+          result.address?.greek;
+
       // Extract dates - format as YYYY-MM-DD
       String? dateOfBirth;
       if (result.dateOfBirth?.date != null) {
         final dob = result.dateOfBirth!.date!;
-        dateOfBirth = "${dob.year}-${dob.month.toString().padLeft(2, '0')}-${dob.day.toString().padLeft(2, '0')}";
+        dateOfBirth =
+            "${dob.year}-${dob.month.toString().padLeft(2, '0')}-${dob.day.toString().padLeft(2, '0')}";
       }
-      
+
       String? expiryDate;
       if (result.dateOfExpiry?.date != null) {
         final expiry = result.dateOfExpiry!.date!;
-        expiryDate = "${expiry.year}-${expiry.month.toString().padLeft(2, '0')}-${expiry.day.toString().padLeft(2, '0')}";
+        expiryDate =
+            "${expiry.year}-${expiry.month.toString().padLeft(2, '0')}-${expiry.day.toString().padLeft(2, '0')}";
       }
-      
+
       // Extract nationality
       String? nationality;
       if (result.nationality != null) {
-        nationality = result.nationality!.value ?? 
-                      result.nationality!.latin ?? 
-                      result.nationality!.arabic ?? 
-                      result.nationality!.cyrillic ?? 
-                      result.nationality!.greek;
+        nationality =
+            result.nationality!.value ??
+            result.nationality!.latin ??
+            result.nationality!.arabic ??
+            result.nationality!.cyrillic ??
+            result.nationality!.greek;
       }
-      
+
       // Extract sex/gender
       String? sex = result.sex?.value;
-      
+
       // Extract document type from documentClassInfo
       String? documentType = result.documentClassInfo?.documentType?.name;
-      
+
       // Try to get raw text from MRZ if available
       String? rawText;
       if (result.subResults != null) {
@@ -315,7 +328,7 @@ class BlinkIDService {
           }
         }
       }
-      
+
       return CardData(
         firstName: firstName,
         lastName: lastName,
@@ -343,7 +356,9 @@ class BlinkIDService {
     if (_isSdkLoaded) {
       try {
         // ignore: undefined_identifier
-        await _plugin.unloadBlinkIdSdk(deleteCachedResources: deleteCachedResources);
+        await _plugin.unloadBlinkIdSdk(
+          deleteCachedResources: deleteCachedResources,
+        );
         _isSdkLoaded = false;
       } catch (e) {
         // ignore: avoid_print
