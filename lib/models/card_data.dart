@@ -11,6 +11,15 @@ class CardData {
   final String? documentType;
   final String? rawText;
 
+  // English variants (if native script was different)
+  final String? firstNameEnglish;
+  final String? lastNameEnglish;
+  final String? fullNameEnglish;
+  final String? documentNumberEnglish;
+  
+  // Base64 encoded image
+  final String? documentImageBase64;
+
   CardData({
     this.firstName,
     this.lastName,
@@ -23,6 +32,11 @@ class CardData {
     this.sex,
     this.documentType,
     this.rawText,
+    this.firstNameEnglish,
+    this.lastNameEnglish,
+    this.fullNameEnglish,
+    this.documentNumberEnglish,
+    this.documentImageBase64,
   });
 
   bool get isEmpty {
@@ -45,6 +59,11 @@ class CardData {
       'sex': sex,
       'documentType': documentType,
       'rawText': rawText,
+      'firstNameEnglish': firstNameEnglish,
+      'lastNameEnglish': lastNameEnglish,
+      'fullNameEnglish': fullNameEnglish,
+      'documentNumberEnglish': documentNumberEnglish,
+      'documentImageBase64': documentImageBase64,
     };
   }
 }

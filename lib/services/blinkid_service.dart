@@ -249,14 +249,28 @@ class BlinkIDService {
   /// Based on BlinkID Flutter implementation guide
   CardData _extractCardData(BlinkIdScanningResult result) {
     try {
-      // Extract personal information with multi-alphabet support
-      String? firstName = _getNativeString(result.firstName);
-      String? lastName = _getNativeString(result.lastName);
-      String? fullName = _getNativeString(result.fullName);
+      // Extract personal information
+      // Native (preferred)
+      String? firstName = _getBestString(result.firstName);
+      String? lastName = _getBestString(result.lastName);
+      String? fullName = _getBestString(result.fullName);
+
+      // English/Latin variants
+      String? firstNameEnglish = _getLatinString(result.firstName);
+      String? lastNameEnglish = _getLatinString(result.lastName);
+      String? fullNameEnglish = _getLatinString(result.fullName);
+
+      // If native is same as English, don't duplicate English variant
+      if (firstName == firstNameEnglish) firstNameEnglish = null;
+      if (lastName == lastNameEnglish) lastNameEnglish = null;
+      if (fullName == fullNameEnglish) fullNameEnglish = null;
 
       // Extract document information
-      String? documentNumber = _getNativeString(result.documentNumber);
-      String? address = _getNativeString(result.address);
+      String? documentNumber = _getBestString(result.documentNumber);
+      String? documentNumberEnglish = _getLatinString(result.documentNumber);
+      if (documentNumber == documentNumberEnglish) documentNumberEnglish = null;
+
+      String? address = _getBestString(result.address);
 
       // Extract dates - format as YYYY-MM-DD
       String? dateOfBirth;
@@ -276,7 +290,7 @@ class BlinkIDService {
       // Extract nationality
       String? nationality;
       if (result.nationality != null) {
-        nationality = _getNativeString(result.nationality);
+        nationality = _getBestString(result.nationality);
       }
 
       // Extract sex/gender
@@ -296,6 +310,29 @@ class BlinkIDService {
         }
       }
 
+      // Extract document image
+      // Using dynamic to avoid analyzer errors if properties vary by version
+      // ignore: avoid_dynamic_calls
+      String? documentImageBase64;
+      try {
+        // ignore: avoid_dynamic_calls
+        documentImageBase64 = (result as dynamic).fullDocumentFrontImage;
+      } catch (_) {}
+
+      if (documentImageBase64 == null) {
+        try {
+          // ignore: avoid_dynamic_calls
+          documentImageBase64 = (result as dynamic).fullDocumentImage;
+        } catch (_) {}
+      }
+
+      if (documentImageBase64 == null) {
+        try {
+          // ignore: avoid_dynamic_calls
+          documentImageBase64 = (result as dynamic).firstDocumentImage;
+        } catch (_) {}
+      }
+
       return CardData(
         firstName: firstName,
         lastName: lastName,
@@ -308,6 +345,11 @@ class BlinkIDService {
         sex: sex,
         documentType: documentType,
         rawText: rawText,
+        firstNameEnglish: firstNameEnglish,
+        lastNameEnglish: lastNameEnglish,
+        fullNameEnglish: fullNameEnglish,
+        documentNumberEnglish: documentNumberEnglish,
+        documentImageBase64: documentImageBase64,
       );
     } catch (e, stackTrace) {
       // ignore: avoid_print
@@ -318,9 +360,15 @@ class BlinkIDService {
     }
   }
 
+  /// Helper to extract latin/english string
+  String? _getLatinString(StringResult? result) {
+    if (result == null) return null;
+    return result.latin;
+  }
+
   /// Helper to extract string with preference for native script
-  /// Returns "Native (Latin)" if both are available and different
-  String? _getNativeString(StringResult? result) {
+  /// Returns native script if available, otherwise latin/value
+  String? _getBestString(StringResult? result) {
     if (result == null) return null;
 
     // Collect available scripts
@@ -330,42 +378,21 @@ class BlinkIDService {
     final latin = result.latin;
     final value = result.value;
 
-    // Check for Arabic
-    if (arabic != null && arabic.isNotEmpty) {
-      if (latin != null && latin.isNotEmpty && latin != arabic) {
-        return "$arabic ($latin)";
-      }
-      return arabic;
-    }
+    // Check for Native scripts
+    if (arabic != null && arabic.isNotEmpty) return arabic;
+    if (cyrillic != null && cyrillic.isNotEmpty) return cyrillic;
+    if (greek != null && greek.isNotEmpty) return greek;
 
-    // Check for Cyrillic
-    if (cyrillic != null && cyrillic.isNotEmpty) {
-      if (latin != null && latin.isNotEmpty && latin != cyrillic) {
-        return "$cyrillic ($latin)";
-      }
-      return cyrillic;
-    }
-
-    // Check for Greek
-    if (greek != null && greek.isNotEmpty) {
-      if (latin != null && latin.isNotEmpty && latin != greek) {
-        return "$greek ($latin)";
-      }
-      return greek;
-    }
-
-    // For other scripts (like Bangla) where we might not have a specific property access
-    // or it relies on .value being the native script.
+    // For other scripts (like Bangla)
     // If value is present and different from latin, assume value is native.
     if (value != null && value.isNotEmpty) {
       if (latin != null && latin.isNotEmpty && value != latin) {
-        return "$value ($latin)";
+        return value;
       }
-      return value;
     }
 
-    // Fallback to latin if value was empty or same
-    return latin ?? value;
+    // Fallback
+    return value ?? latin;
   }
 
   /// Unload the SDK when done (optional, for cleanup)
