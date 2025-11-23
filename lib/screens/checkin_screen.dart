@@ -7,6 +7,7 @@ import '../widgets/custom_text_field.dart';
 import '../widgets/custom_button.dart';
 import '../models/card_data.dart';
 import '../services/blinkid_service.dart';
+import 'verification_screen.dart';
 // MLKitService is no longer used as fallback for gallery image since gallery is removed
 // import '../services/mlkit_service.dart';
 
@@ -25,7 +26,6 @@ class _CheckInScreenState extends State<CheckInScreen> {
 
   CardData? _parsedData;
   bool _isScanning = false;
-  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -94,31 +94,18 @@ class _CheckInScreenState extends State<CheckInScreen> {
     }
   }
 
-  Future<void> _submitCheckIn() async {
+  void _goToVerification() {
     if (_formKey.currentState!.validate()) {
-      setState(() => _isSubmitting = true);
-
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 1));
-
-      setState(() => _isSubmitting = false);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Check-in successful!'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => VerificationScreen(
+            parsedData: _parsedData,
+            name: _nameController.text,
+            idNumber: _idController.text,
           ),
-        );
-
-        // Clear form after successful submission
-        _nameController.clear();
-        _idController.clear();
-        setState(() {
-          _parsedData = null;
-        });
-      }
+        ),
+      );
     }
   }
 
@@ -138,7 +125,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0E27),
-      appBar: const CustomAppBar(title: 'Check In', showBackButton: true),
+      appBar: const CustomAppBar(title: 'Step 1: Card Scan', showBackButton: true),
       body: GradientBackground(
         child: SafeArea(
           child: SingleChildScrollView(
@@ -290,13 +277,13 @@ class _CheckInScreenState extends State<CheckInScreen> {
                     const SizedBox(height: 24),
                   ],
 
-                  // Submit Button
+                  // Next Step Button (Go to Verification)
                   CustomButton(
-                    text: 'Submit Check In',
-                    icon: Icons.check,
+                    text: 'Step 2: Verification',
+                    icon: Icons.arrow_forward,
                     backgroundColor: const Color(0xFF3B82F6),
-                    onPressed: _isSubmitting ? () {} : _submitCheckIn,
-                    isLoading: _isSubmitting,
+                    onPressed: _goToVerification,
+                    isLoading: false,
                   ),
                 ],
               ),
