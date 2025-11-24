@@ -6,18 +6,21 @@ import '../widgets/gradient_background.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/custom_button.dart';
 import '../models/card_data.dart';
+import '../services/api_service.dart';
 import 'visitor_details_screen.dart';
 
 class VerificationScreen extends StatefulWidget {
   final CardData? parsedData;
   final String name;
   final String idNumber;
+  final String idImageReference; // File ID from step 1
 
   const VerificationScreen({
     super.key,
     this.parsedData,
     required this.name,
     required this.idNumber,
+    required this.idImageReference,
   });
 
   @override
@@ -27,6 +30,8 @@ class VerificationScreen extends StatefulWidget {
 class _VerificationScreenState extends State<VerificationScreen> {
   File? _userPhoto;
   final _imagePicker = ImagePicker();
+  String? _profilePictureFileId; // File ID from save-blob API
+  bool _isUploadingSelfie = false;
 
   @override
   void dispose() {
@@ -49,29 +54,71 @@ class _VerificationScreenState extends State<VerificationScreen> {
       );
 
       if (photo != null) {
+        final photoFile = File(photo.path);
         setState(() {
-          _userPhoto = File(photo.path);
+          _userPhoto = photoFile;
+          _profilePictureFileId = null;
         });
+
+        // Upload selfie to API
+        setState(() {
+          _isUploadingSelfie = true;
+        });
+
+        final base64Image = await ApiService.imageToBase64(photoFile);
+        if (base64Image != null) {
+          final fileId = await ApiService.saveBlob(
+            content: base64Image,
+            note: 'mobile-app',
+          );
+
+          setState(() {
+            _isUploadingSelfie = false;
+            _profilePictureFileId = fileId;
+          });
+
+          if (fileId == null) {
+            _showError('Failed to upload selfie. Please try again.');
+          }
+        } else {
+          setState(() {
+            _isUploadingSelfie = false;
+          });
+          _showError('Failed to process image. Please try again.');
+        }
       }
     } catch (e) {
+      setState(() {
+        _isUploadingSelfie = false;
+      });
       _showError('Error taking photo: ${e.toString()}');
     }
   }
 
   void _goToStep3() {
-    if (_userPhoto != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => VisitorDetailsScreen(
-            parsedData: widget.parsedData,
-            name: widget.name,
-            idNumber: widget.idNumber,
-            userPhoto: _userPhoto,
-          ),
-        ),
-      );
+    if (_userPhoto == null) {
+      _showError('Please take a verification photo first');
+      return;
     }
+
+    if (_profilePictureFileId == null) {
+      _showError('Selfie is still uploading. Please wait...');
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => VisitorDetailsScreen(
+          parsedData: widget.parsedData,
+          name: widget.name,
+          idNumber: widget.idNumber,
+          userPhoto: _userPhoto,
+          idImageReference: widget.idImageReference,
+          profilePictureFileId: _profilePictureFileId!,
+        ),
+      ),
+    );
   }
 
   void _showError(String message) {
@@ -90,7 +137,10 @@ class _VerificationScreenState extends State<VerificationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0E27),
-      appBar: const CustomAppBar(title: 'Step 2: Verification', showBackButton: true),
+      appBar: const CustomAppBar(
+        title: 'Step 2: Verification',
+        showBackButton: true,
+      ),
       body: GradientBackground(
         child: SafeArea(
           child: SingleChildScrollView(
@@ -137,18 +187,15 @@ class _VerificationScreenState extends State<VerificationScreen> {
                 const SizedBox(height: 8),
                 Text(
                   'Please take a photo of the person for verification.',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
                 ),
                 const SizedBox(height: 16),
 
-                if (_userPhoto != null)
+                if (_userPhoto != null) ...[
                   Container(
                     height: 240,
                     width: double.infinity,
-                    margin: const EdgeInsets.only(bottom: 24),
+                    margin: const EdgeInsets.only(bottom: 16),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
@@ -158,24 +205,87 @@ class _VerificationScreenState extends State<VerificationScreen> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(14),
-                      child: Image.file(
-                        _userPhoto!,
-                        fit: BoxFit.cover,
-                      ),
+                      child: Image.file(_userPhoto!, fit: BoxFit.cover),
                     ),
                   ),
+                  if (_isUploadingSelfie)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Uploading selfie...',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (_profilePictureFileId != null && !_isUploadingSelfie)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Colors.green.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            color: Colors.green,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Selfie uploaded successfully',
+                            style: TextStyle(
+                              color: Colors.green,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
 
                 // Camera Button
                 CustomButton(
-                  text: _userPhoto == null ? 'Take Verification Photo' : 'Retake Photo',
+                  text: _userPhoto == null
+                      ? 'Take Verification Photo'
+                      : 'Retake Photo',
                   icon: Icons.camera_front,
                   backgroundColor: const Color(0xFF8B5CF6),
                   onPressed: _takeUserPhoto,
                   isLoading: false,
                 ),
 
-                // Next Step Button (Only visible if photo is taken)
-                if (_userPhoto != null) ...[
+                // Next Step Button (Only visible if photo is taken and uploaded)
+                if (_userPhoto != null &&
+                    _profilePictureFileId != null &&
+                    !_isUploadingSelfie) ...[
                   const SizedBox(height: 24),
                   CustomButton(
                     text: 'Step 3: Visitor Details',
@@ -223,4 +333,3 @@ class _VerificationScreenState extends State<VerificationScreen> {
     );
   }
 }
-

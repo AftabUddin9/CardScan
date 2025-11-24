@@ -5,12 +5,15 @@ import '../widgets/custom_app_bar.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/custom_button.dart';
 import '../models/card_data.dart';
+import '../services/api_service.dart';
 
 class VisitorDetailsScreen extends StatefulWidget {
   final CardData? parsedData;
   final String name;
   final String idNumber;
   final File? userPhoto;
+  final String idImageReference; // File ID from step 1 (ID card)
+  final String profilePictureFileId; // File ID from step 2 (selfie)
 
   const VisitorDetailsScreen({
     super.key,
@@ -18,6 +21,8 @@ class VisitorDetailsScreen extends StatefulWidget {
     required this.name,
     required this.idNumber,
     this.userPhoto,
+    required this.idImageReference,
+    required this.profilePictureFileId,
   });
 
   @override
@@ -49,24 +54,103 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
 
   Future<void> _submitCheckIn() async {
     if (_formKey.currentState!.validate()) {
-      setState(() => _isSubmitting = true);
-
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 1));
-
-      setState(() => _isSubmitting = false);
-
-      if (mounted) {
+      // Validate that file IDs are present and not the file type strings
+      if (widget.idImageReference.isEmpty || widget.idImageReference == 'idcard') {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Check-in successful!'),
-            backgroundColor: Colors.green,
+            content: Text('ID card image reference is missing or invalid. Please scan again.'),
+            backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
         );
-        
-        // Navigate back to home or initial screen
-        Navigator.of(context).popUntil((route) => route.isFirst);
+        return;
+      }
+
+      if (widget.profilePictureFileId.isEmpty || widget.profilePictureFileId == 'userselfie') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile picture file ID is missing or invalid. Please take a selfie again.'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+
+      setState(() => _isSubmitting = true);
+
+      try {
+        // Debug: Print file IDs to verify they are correct
+        print('=== File IDs Debug ===');
+        print('ID Image Reference: ${widget.idImageReference}');
+        print('Profile Picture File ID: ${widget.profilePictureFileId}');
+        print('=====================');
+
+        // Prepare files array
+        final files = [
+          {
+            'documentType': 'idcard',
+            'fileId': widget.idImageReference, // Use the actual file ID from API response
+          },
+        ];
+
+        // Prepare dynamic data
+        final dynamicData = {
+          'IdNumber': widget.idNumber,
+          'phone': _phoneController.text.trim().isNotEmpty ? _phoneController.text.trim() : '',
+          'company': _companyController.text.trim().isNotEmpty ? _companyController.text.trim() : '',
+        };
+
+        // Call complete check-in API
+        final response = await ApiService.completeCheckIn(
+          name: widget.name,
+          email: _emailController.text.trim(),
+          profilePictureFileId: widget.profilePictureFileId, // Use the actual file ID from API response
+          purposeOfVisit: _selectedVisitPurpose!,
+          files: files,
+          dynamicData: dynamicData,
+        );
+
+        setState(() => _isSubmitting = false);
+
+        if (mounted) {
+          if (response != null) {
+            // Print response for debugging
+            print('=== Check-In Response Data ===');
+            print(response);
+            print('=============================');
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Check-in successful!'),
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+            
+            // Navigate back to home or initial screen
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Check-in failed. Please try again.'),
+                backgroundColor: Colors.red,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        setState(() => _isSubmitting = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       }
     }
   }
