@@ -5,14 +5,12 @@ import 'package:http/http.dart' as http;
 class ApiService {
   static const String baseUrl = 'https://center3.ntouch.ai/api';
 
-  /// Save blob/file to server
-  /// Returns the file ID (string) that can be used as reference
   static Future<String?> saveBlob({
     required String content, // Base64 encoded image
     String note = 'mobile-app',
   }) async {
     try {
-      final url = Uri.parse('$baseUrl/file-management/file/save-blob');
+      final url = Uri.parse('$baseUrl/file-management/file');
 
       final response = await http.post(
         url,
