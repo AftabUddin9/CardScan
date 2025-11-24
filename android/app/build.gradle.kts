@@ -33,9 +33,10 @@ android {
         multiDexEnabled = true
         
         // NDK architecture filters - BlinkID requires ARM architectures only
-        ndk {
-            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
-        }
+        // Note: When using split-per-abi, you might need to comment this out if it conflicts
+        // ndk {
+        //     abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86_64")
+        // }
     }
 
     buildTypes {
