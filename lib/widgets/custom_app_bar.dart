@@ -25,14 +25,30 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                   padding: const EdgeInsets.all(8),
                 )
               : null),
-      title: Text(
-        title,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.3,
-        ),
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Image.asset(
+            'assets/images/center3icon.png',
+            height: 28,
+            width: 28,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              // Fallback if image not found
+              return const SizedBox(width: 28, height: 28);
+            },
+          ),
+          const SizedBox(width: 12),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
       ),
       actions: actions,
       backgroundColor: Colors.transparent,
@@ -43,8 +59,9 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              const Color(0xFF1E3A8A).withOpacity(0.8), // Blue
-              const Color(0xFF7C3AED).withOpacity(0.8), // Purple
+              const Color(0xFF0A0E27), // Dark blue-black
+              const Color(0xFF1A1F3A), // Darker blue-gray
+              const Color(0xFF2D1B4E), // Dark purple
             ],
           ),
           boxShadow: [
