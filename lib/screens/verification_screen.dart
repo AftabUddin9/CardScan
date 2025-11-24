@@ -6,6 +6,7 @@ import '../widgets/gradient_background.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/custom_button.dart';
 import '../models/card_data.dart';
+import 'visitor_details_screen.dart';
 
 class VerificationScreen extends StatefulWidget {
   final CardData? parsedData;
@@ -25,7 +26,6 @@ class VerificationScreen extends StatefulWidget {
 
 class _VerificationScreenState extends State<VerificationScreen> {
   File? _userPhoto;
-  bool _isSubmitting = false;
   final _imagePicker = ImagePicker();
 
   @override
@@ -58,25 +58,19 @@ class _VerificationScreenState extends State<VerificationScreen> {
     }
   }
 
-  Future<void> _submitCheckIn() async {
-    setState(() => _isSubmitting = true);
-
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 1));
-
-    setState(() => _isSubmitting = false);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Check-in successful!'),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
+  void _goToStep3() {
+    if (_userPhoto != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => VisitorDetailsScreen(
+            parsedData: widget.parsedData,
+            name: widget.name,
+            idNumber: widget.idNumber,
+            userPhoto: _userPhoto,
+          ),
         ),
       );
-      
-      // Navigate back to home or initial screen
-      Navigator.of(context).popUntil((route) => route.isFirst);
     }
   }
 
@@ -180,15 +174,15 @@ class _VerificationScreenState extends State<VerificationScreen> {
                   isLoading: false,
                 ),
 
-                // Submit Button (Only visible if photo is taken)
+                // Next Step Button (Only visible if photo is taken)
                 if (_userPhoto != null) ...[
                   const SizedBox(height: 24),
                   CustomButton(
-                    text: 'Complete Check In',
-                    icon: Icons.check_circle,
-                    backgroundColor: const Color(0xFF10B981),
-                    onPressed: _isSubmitting ? () {} : _submitCheckIn,
-                    isLoading: _isSubmitting,
+                    text: 'Step 3: Visitor Details',
+                    icon: Icons.arrow_forward,
+                    backgroundColor: const Color(0xFF3B82F6),
+                    onPressed: _goToStep3,
+                    isLoading: false,
                   ),
                 ],
               ],
