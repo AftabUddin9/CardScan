@@ -5,18 +5,36 @@ import 'package:http/http.dart' as http;
 class ApiService {
   static const String baseUrl = 'https://center3.ntouch.ai/api';
 
+  /// Save blob/file to server
+  /// Accepts a File object and sends it with its extension
   static Future<String?> saveBlob({
-    required String content, // Base64 encoded image
-    String note = 'mobile-app',
+    required File imageFile, // Image file with extension
   }) async {
     try {
       final url = Uri.parse('$baseUrl/file-management/file');
 
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'content': content, 'note': note}),
+      // Get file extension from path
+      final filePath = imageFile.path;
+      final fileExtension = filePath.contains('.')
+          ? filePath.substring(filePath.lastIndexOf('.'))
+          : '.jpg'; // Default to .jpg if no extension found
+      final fileName = 'image$fileExtension';
+
+      // Create multipart request
+      final request = http.MultipartRequest('POST', url);
+
+      // Add file to request with 'Content' as the field name
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'Content', // Field name for the file (as per API spec)
+          imageFile.path,
+          filename: fileName,
+        ),
       );
+
+      // Send request
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
 
       // Print response for debugging
       print('=== Save Blob API Response ===');
@@ -32,6 +50,14 @@ class ApiService {
         try {
           final jsonResponse = jsonDecode(responseBody);
           if (jsonResponse is Map<String, dynamic>) {
+            // Look for common field names that might contain the file ID
+            final fileId =
+                jsonResponse['fileId'] ??
+                jsonResponse['id'] ??
+                jsonResponse['reference'];
+            if (fileId != null && fileId is String && fileId.isNotEmpty) {
+              return fileId;
+            }
           } else if (jsonResponse is String) {
             // If JSON is just a string, use it
             if (jsonResponse.isNotEmpty) {
@@ -48,7 +74,7 @@ class ApiService {
           return fileId;
         }
 
-        print('Warning: API response may be invalid or same as fileUniqueName');
+        print('Warning: API response may be invalid');
         print('Response: $responseBody');
         return null;
       } else {
@@ -118,7 +144,26 @@ class ApiService {
     }
   }
 
-  /// Convert image file to base64 string
+  /// Convert base64 string to temporary file
+  static Future<File?> base64ToFile(
+    String base64String, {
+    String extension = '.jpg',
+  }) async {
+    try {
+      final bytes = base64Decode(base64String);
+      final tempDir = Directory.systemTemp;
+      final tempFile = File(
+        '${tempDir.path}/image_${DateTime.now().millisecondsSinceEpoch}$extension',
+      );
+      await tempFile.writeAsBytes(bytes);
+      return tempFile;
+    } catch (e) {
+      print('Error converting base64 to file: $e');
+      return null;
+    }
+  }
+
+  /// Convert image file to base64 string (kept for backward compatibility if needed)
   static Future<String?> imageToBase64(File imageFile) async {
     try {
       final bytes = await imageFile.readAsBytes();

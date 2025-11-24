@@ -89,18 +89,30 @@ class _CheckInScreenState extends State<CheckInScreen> {
             _isUploadingImage = true;
           });
 
-          final fileId = await ApiService.saveBlob(
-            content: result.documentImageBase64!,
-            note: 'mobile-app',
+          // Convert base64 to File
+          final imageFile = await ApiService.base64ToFile(
+            result.documentImageBase64!,
+            extension: '.jpg',
           );
 
-          setState(() {
-            _isUploadingImage = false;
-            _idImageReference = fileId;
-          });
+          if (imageFile != null) {
+            final fileId = await ApiService.saveBlob(
+              imageFile: imageFile,
+            );
 
-          if (fileId == null) {
-            _showError('Failed to upload document image. Please try again.');
+            setState(() {
+              _isUploadingImage = false;
+              _idImageReference = fileId;
+            });
+
+            if (fileId == null) {
+              _showError('Failed to upload document image. Please try again.');
+            }
+          } else {
+            setState(() {
+              _isUploadingImage = false;
+            });
+            _showError('Failed to process document image. Please try again.');
           }
         } else {
           setState(() {

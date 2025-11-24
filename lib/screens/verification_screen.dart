@@ -65,26 +65,17 @@ class _VerificationScreenState extends State<VerificationScreen> {
           _isUploadingSelfie = true;
         });
 
-        final base64Image = await ApiService.imageToBase64(photoFile);
-        if (base64Image != null) {
-          final fileId = await ApiService.saveBlob(
-            content: base64Image,
-            note: 'mobile-app',
-          );
+        final fileId = await ApiService.saveBlob(
+          imageFile: photoFile,
+        );
 
-          setState(() {
-            _isUploadingSelfie = false;
-            _profilePictureFileId = fileId;
-          });
+        setState(() {
+          _isUploadingSelfie = false;
+          _profilePictureFileId = fileId;
+        });
 
-          if (fileId == null) {
-            _showError('Failed to upload selfie. Please try again.');
-          }
-        } else {
-          setState(() {
-            _isUploadingSelfie = false;
-          });
-          _showError('Failed to process image. Please try again.');
+        if (fileId == null) {
+          _showError('Failed to upload selfie. Please try again.');
         }
       }
     } catch (e) {
