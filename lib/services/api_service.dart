@@ -95,15 +95,17 @@ class ApiService {
     required String profilePictureFileId, // Image reference from selfie
     required String purposeOfVisit,
     required List<Map<String, String>>
-    files, // List with documentType and fileId
+    files, // List with fileType and fileId
     required Map<String, String> dynamicData, // IdNumber, phone, company
+    String? hostEmployeeId,
+    required Map<String, dynamic> visitSchedule,
   }) async {
     try {
       final url = Uri.parse(
         '$baseUrl/visitor/anonymous-visitor/self-visitor-register',
       );
 
-      final payload = {
+      final payload = <String, dynamic>{
         'name': name,
         'email': email,
         'profilePictureFileId': profilePictureFileId,
@@ -111,6 +113,14 @@ class ApiService {
         'files': files,
         'dynamicData': dynamicData,
       };
+
+      // Add hostEmployeeId if provided
+      if (hostEmployeeId != null && hostEmployeeId.isNotEmpty) {
+        payload['hostEmployeeId'] = hostEmployeeId;
+      }
+
+      // Add visitSchedule (always required)
+      payload['visitSchedule'] = visitSchedule;
 
       final response = await http.post(
         url,
