@@ -25,30 +25,14 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                   padding: const EdgeInsets.all(8),
                 )
               : null),
-      title: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Image.asset(
-            'assets/images/center3icon.png',
-            height: 28,
-            width: 28,
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) {
-              // Fallback if image not found
-              return const SizedBox(width: 28, height: 28);
-            },
-          ),
-          const SizedBox(width: 12),
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.3,
-            ),
-          ),
-        ],
+      title: Image.asset(
+        'assets/images/center3logo.png',
+        height: 32,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          // Fallback if image not found
+          return const SizedBox(height: 32);
+        },
       ),
       actions: actions,
       backgroundColor: Colors.transparent,
