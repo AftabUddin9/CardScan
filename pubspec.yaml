@@ -68,6 +68,7 @@ flutter:
   assets:
     - assets/images/center3icon.png
     - assets/images/center3logo.png
+    - assets/images/cardscan_logo.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

@@ -26,7 +26,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 )
               : null),
       title: Image.asset(
-        'assets/images/center3logo.png',
+        '',
         height: 32,
         fit: BoxFit.contain,
         errorBuilder: (context, error, stackTrace) {
