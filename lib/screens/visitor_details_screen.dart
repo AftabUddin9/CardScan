@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../widgets/gradient_background.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/custom_text_field.dart';
@@ -8,6 +7,7 @@ import '../widgets/custom_button.dart';
 import '../models/card_data.dart';
 import '../models/workflow_data.dart';
 import '../services/api_service.dart';
+import 'agreement_screen.dart';
 
 class VisitorDetailsScreen extends StatefulWidget {
   final CardData? parsedData;
@@ -38,7 +38,6 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
   final _companyController = TextEditingController();
 
   String? _selectedVisitPurpose;
-  bool _isSubmitting = false;
   bool _isRecurringVisit = true; // Set to true by default
   DateTime? _visitStartDate;
   DateTime? _visitEndDate;
@@ -166,107 +165,34 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
         return;
       }
 
-      setState(() => _isSubmitting = true);
-
-      try {
-        // Debug: Print file IDs to verify they are correct
-        print('=== File IDs Debug ===');
-        print('ID Image Reference: ${widget.idImageReference}');
-        print('Profile Picture File ID: ${widget.profilePictureFileId}');
-        print('=====================');
-
-        // Prepare files array
-        final files = [
-          {'fileType': 'NID', 'fileId': widget.idImageReference},
-        ];
-
-        // Prepare dynamic data
-        final dynamicData = {
-          'IdNumber': widget.idNumber,
-          'phone': _phoneController.text.trim().isNotEmpty
-              ? _phoneController.text.trim()
-              : '',
-          'company': _companyController.text.trim().isNotEmpty
-              ? _companyController.text.trim()
-              : '',
-        };
-
-        // Prepare visit schedule (always required)
-        final visitSchedule = <String, dynamic>{
-          'isRecurringVisit': _isRecurringVisit,
-          'visitStartTime':
-              '${_visitStartTime!.hour.toString().padLeft(2, '0')}:${_visitStartTime!.minute.toString().padLeft(2, '0')}',
-          'visitEndTime':
-              '${_visitEndTime!.hour.toString().padLeft(2, '0')}:${_visitEndTime!.minute.toString().padLeft(2, '0')}',
-          'visitStartDate': DateFormat('yyyy-MM-dd').format(_visitStartDate!),
-        };
-
-        // Only include visitEndDate if recurring visit is enabled
-        if (_isRecurringVisit && _visitEndDate != null) {
-          visitSchedule['visitEndDate'] = DateFormat(
-            'yyyy-MM-dd',
-          ).format(_visitEndDate!);
-        } else {
-          visitSchedule['visitEndDate'] = null;
-        }
-
-        // Use selected escort's approverId as hostEmployeeId
-        final hostEmployeeId = _selectedEscort?.approverId;
-
-        // Call complete check-in API
-        final response = await ApiService.completeCheckIn(
-          name: widget.name,
-          email: _emailController.text.trim(),
-          profilePictureFileId: widget
-              .profilePictureFileId, // Use the actual file ID from API response
-          purposeOfVisit: _selectedVisitPurpose!,
-          files: files,
-          dynamicData: dynamicData,
-          hostEmployeeId: hostEmployeeId,
-          visitSchedule: visitSchedule,
-        );
-
-        setState(() => _isSubmitting = false);
-
-        if (mounted) {
-          if (response != null) {
-            // Print response for debugging
-            print('=== Check-In Response Data ===');
-            print(response);
-            print('=============================');
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Check-in successful!'),
-                backgroundColor: Colors.green,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-
-            // Navigate back to home or initial screen
-            Navigator.of(context).popUntil((route) => route.isFirst);
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Check-in failed. Please try again.'),
-                backgroundColor: Colors.red,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          }
-        }
-      } catch (e) {
-        setState(() => _isSubmitting = false);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: ${e.toString()}'),
-              backgroundColor: Colors.red,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      }
+      // Navigate to Step 4 (Agreement Screen)
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AgreementScreen(
+            parsedData: widget.parsedData,
+            name: widget.name,
+            idNumber: widget.idNumber,
+            userPhoto: widget.userPhoto,
+            idImageReference: widget.idImageReference,
+            profilePictureFileId: widget.profilePictureFileId,
+            email: _emailController.text.trim(),
+            phone: _phoneController.text.trim().isNotEmpty
+                ? _phoneController.text.trim()
+                : null,
+            company: _companyController.text.trim().isNotEmpty
+                ? _companyController.text.trim()
+                : null,
+            purposeOfVisit: _selectedVisitPurpose!,
+            selectedEscort: _selectedEscort,
+            isRecurringVisit: _isRecurringVisit,
+            visitStartDate: _visitStartDate!,
+            visitEndDate: _visitEndDate,
+            visitStartTime: _visitStartTime!,
+            visitEndTime: _visitEndTime!,
+          ),
+        ),
+      );
     }
   }
 
@@ -512,13 +438,13 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
                   ),
                   const SizedBox(height: 32),
 
-                  // Submit Button
+                  // Submit Button (Navigate to Step 4)
                   CustomButton(
-                    text: 'Complete Check In',
-                    icon: Icons.check_circle,
+                    text: 'Continue to Agreement',
+                    icon: Icons.arrow_forward,
                     backgroundColor: const Color(0xFF10B981),
-                    onPressed: _isSubmitting ? () {} : _submitCheckIn,
-                    isLoading: _isSubmitting,
+                    onPressed: _submitCheckIn,
+                    isLoading: false,
                   ),
                 ],
               ),
