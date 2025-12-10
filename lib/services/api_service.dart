@@ -218,4 +218,43 @@ class ApiService {
       return null;
     }
   }
+
+  /// Checkout visitor using visit number
+  /// Returns the response data
+  static Future<Map<String, dynamic>?> checkout({
+    required String visitNumber,
+  }) async {
+    try {
+      final url = Uri.parse(
+        '$baseUrl/visitor/anonymous-visitor/mobile-check-out?visitNumber=$visitNumber',
+      );
+
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      // Print response for debugging
+      print('=== Checkout API Response ===');
+      print('Status Code: ${response.statusCode}');
+      print('Request URL: $url');
+      print('Response Body: ${response.body}');
+      print('============================');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        try {
+          return jsonDecode(response.body) as Map<String, dynamic>;
+        } catch (e) {
+          // If response is not JSON, return as string
+          return {'message': response.body};
+        }
+      } else {
+        print('Error checking out: ${response.statusCode} - ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('Exception checking out: $e');
+      return null;
+    }
+  }
 }
