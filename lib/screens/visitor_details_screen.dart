@@ -356,7 +356,7 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
                           ),
                         ),
                         child: DropdownButtonFormField<String>(
-                          value: _selectedVisitPurpose,
+                          initialValue: _selectedVisitPurpose,
                           decoration: InputDecoration(
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 12,
