@@ -94,15 +94,14 @@ class ApiService {
     required String email,
     required String profilePictureFileId, // Image reference from selfie
     required String purposeOfVisit,
-    required List<Map<String, String>>
-    files, // List with fileType and fileId
+    required List<Map<String, String>> files, // List with fileType and fileId
     required Map<String, String> dynamicData, // IdNumber, phone, company
     String? hostEmployeeId,
     required Map<String, dynamic> visitSchedule,
   }) async {
     try {
       final url = Uri.parse(
-        '$baseUrl/visitor/anonymous-visitor/self-visitor-register',
+        '$baseUrl/visitor/anonymous-visitor/mobile-self-visitor-register',
       );
 
       final payload = <String, dynamic>{
@@ -180,6 +179,42 @@ class ApiService {
       return base64Encode(bytes);
     } catch (e) {
       print('Error converting image to base64: $e');
+      return null;
+    }
+  }
+
+  /// Fetch workflow data
+  /// Returns the workflow data with approval sequences
+  static Future<Map<String, dynamic>?> fetchWorkflow() async {
+    try {
+      final url = Uri.parse('$baseUrl/approval-workflow/workflow/workflow');
+
+      final response = await http.get(
+        url,
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      // Print response for debugging
+      print('=== Fetch Workflow API Response ===');
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+      print('===================================');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        try {
+          return jsonDecode(response.body) as Map<String, dynamic>;
+        } catch (e) {
+          print('Error parsing workflow response: $e');
+          return null;
+        }
+      } else {
+        print(
+          'Error fetching workflow: ${response.statusCode} - ${response.body}',
+        );
+        return null;
+      }
+    } catch (e) {
+      print('Exception fetching workflow: $e');
       return null;
     }
   }

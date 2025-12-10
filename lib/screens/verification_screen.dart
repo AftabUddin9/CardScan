@@ -50,7 +50,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
       final XFile? photo = await _imagePicker.pickImage(
         source: ImageSource.camera,
         preferredCameraDevice: CameraDevice.front,
-        imageQuality: 85,
+        imageQuality: 100,
       );
 
       if (photo != null) {
@@ -65,9 +65,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
           _isUploadingSelfie = true;
         });
 
-        final fileId = await ApiService.saveBlob(
-          imageFile: photoFile,
-        );
+        final fileId = await ApiService.saveBlob(imageFile: photoFile);
 
         setState(() {
           _isUploadingSelfie = false;
@@ -151,7 +149,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Check-In Summary',
+                        'Visitor Summary',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 16,

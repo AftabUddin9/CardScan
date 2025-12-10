@@ -4,7 +4,7 @@ import '../widgets/custom_app_bar.dart';
 import '../widgets/action_card.dart';
 import 'checkin_screen.dart';
 import 'checkout_screen.dart';
-import 'login_screen.dart';
+// import 'login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,19 +18,14 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0E27), // Match gradient background
-      appBar: const CustomAppBar(
-        title: 'Card Scan',
-        showBackButton: false,
-      ),
+      appBar: const CustomAppBar(title: 'Card Scan', showBackButton: false),
       body: GradientBackground(
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
               return SingleChildScrollView(
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight,
-                  ),
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
@@ -92,20 +87,20 @@ class _HomeScreenState extends State<HomeScreen> {
                             );
                           },
                         ),
-                        const SizedBox(height: 10),
-                        ActionCard(
-                          title: 'Login',
-                          icon: Icons.person,
-                          iconColor: const Color(0xFF3B82F6), // Blue
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const LoginScreen(),
-                              ),
-                            );
-                          },
-                        ),
+                        // const SizedBox(height: 10),
+                        // ActionCard(
+                        //   title: 'Login',
+                        //   icon: Icons.person,
+                        //   iconColor: const Color(0xFF3B82F6), // Blue
+                        //   onTap: () {
+                        //     Navigator.push(
+                        //       context,
+                        //       MaterialPageRoute(
+                        //         builder: (context) => const LoginScreen(),
+                        //       ),
+                        //     );
+                        //   },
+                        // ),
                       ],
                     ),
                   ),
@@ -118,4 +113,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-
