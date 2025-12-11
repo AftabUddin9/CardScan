@@ -1,11 +1,13 @@
 class ApprovalSequence {
   final String name;
   final int order;
+  final String approverGuid;
   final String approverId;
 
   ApprovalSequence({
     required this.name,
     required this.order,
+    required this.approverGuid,
     required this.approverId,
   });
 
@@ -13,6 +15,7 @@ class ApprovalSequence {
     return ApprovalSequence(
       name: json['name'] as String,
       order: json['order'] as int,
+      approverGuid: json['approverGuid'] as String,
       approverId: json['approverId'] as String,
     );
   }
@@ -21,6 +24,7 @@ class ApprovalSequence {
     return {
       'name': name,
       'order': order,
+      'approverGuid': approverGuid,
       'approverId': approverId,
     };
   }

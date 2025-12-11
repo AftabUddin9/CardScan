@@ -47,8 +47,7 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
   // Workflow data
   WorkflowData? _workflowData;
   bool _isLoadingWorkflow = false;
-  String? _selectedLocation; // Selected workflow name
-  ApprovalSequence? _selectedEscort; // Selected approval sequence
+  ApprovalSequence? _selectedEscort; // Selected approval sequence (order 1)
 
   final List<String> _visitPurposes = ['Meeting', 'Site Survey', 'Activity'];
 
@@ -84,12 +83,10 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
         final workflow = WorkflowData.fromJson(response);
         setState(() {
           _workflowData = workflow;
-          // Set default location (first workflow name)
-          _selectedLocation = workflow.name;
-          // Set default escort (first approval sequence)
-          if (workflow.approvalSequences.isNotEmpty) {
-            _selectedEscort = workflow.approvalSequences.first;
-          }
+          // Set default escort (approval sequence with order 1)
+          _selectedEscort = workflow.approvalSequences
+              .where((seq) => seq.order == 1)
+              .firstOrNull;
           _isLoadingWorkflow = false;
         });
       } else {
@@ -242,26 +239,10 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
                             ),
                           )
                         else if (_workflowData != null) ...[
-                          // Location (Read-only input field)
-                          _buildReadOnlyField(
-                            label: 'Location',
-                            value: _selectedLocation ?? _workflowData!.name,
-                          ),
-                          const SizedBox(height: 16),
-                          // Escort Dropdown
-                          _buildVMSDropdown(
-                            label: 'Escort',
-                            value: _selectedEscort?.name,
-                            items: _workflowData!.approvalSequences
-                                .map((seq) => seq.name)
-                                .toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedEscort = _workflowData!
-                                    .approvalSequences
-                                    .firstWhere((seq) => seq.name == value);
-                              });
-                            },
+                          _buildSummaryRow('Location:', _workflowData!.name),
+                          _buildSummaryRow(
+                            'Escort:',
+                            _selectedEscort?.name ?? 'N/A',
                           ),
                         ] else
                           Text(
@@ -457,7 +438,7 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 60,
+            width: 80,
             child: Text(
               label,
               style: TextStyle(
@@ -477,126 +458,6 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildReadOnlyField({
-    required String label,
-    required String value,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.9),
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            letterSpacing: 0.3,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.white.withOpacity(0.15),
-                Colors.white.withOpacity(0.05),
-              ],
-            ),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.2),
-              width: 1.5,
-            ),
-          ),
-          child: TextFormField(
-            initialValue: value,
-            enabled: false,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-            ),
-            decoration: InputDecoration(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 12,
-              ),
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              disabledBorder: InputBorder.none,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildVMSDropdown({
-    required String label,
-    required String? value,
-    required List<String> items,
-    required Function(String?) onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.9),
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            letterSpacing: 0.3,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.white.withOpacity(0.15),
-                Colors.white.withOpacity(0.05),
-              ],
-            ),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.2),
-              width: 1.5,
-            ),
-          ),
-          child: DropdownButtonFormField<String>(
-            value: value,
-            decoration: InputDecoration(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 12,
-              ),
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              errorBorder: InputBorder.none,
-              focusedErrorBorder: InputBorder.none,
-            ),
-            style: const TextStyle(color: Colors.white, fontSize: 14),
-            dropdownColor: const Color(0xFF1A1F3A),
-            icon: Icon(
-              Icons.arrow_drop_down,
-              color: Colors.white.withOpacity(0.7),
-            ),
-            items: items.map((String item) {
-              return DropdownMenuItem<String>(value: item, child: Text(item));
-            }).toList(),
-            onChanged: onChanged,
-          ),
-        ),
-      ],
     );
   }
 }

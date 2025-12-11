@@ -60,6 +60,7 @@ class _AgreementScreenState extends State<AgreementScreen> {
   bool _isLoadingPdf = true;
   int _totalPages = 0;
   int _currentPage = 0;
+  bool _hasReachedLastPage = false;
   PDFViewController? _pdfViewController;
 
   @override
@@ -308,6 +309,10 @@ class _AgreementScreenState extends State<AgreementScreen> {
                                     onRender: (pages) {
                                       setState(() {
                                         _totalPages = pages ?? 0;
+                                        // If it's a single page PDF, user is already on last page
+                                        if (_totalPages == 1) {
+                                          _hasReachedLastPage = true;
+                                        }
                                       });
                                     },
                                     onError: (error) {
@@ -323,6 +328,10 @@ class _AgreementScreenState extends State<AgreementScreen> {
                                       setState(() {
                                         _currentPage = page ?? 0;
                                         _totalPages = total ?? 0;
+                                        // Check if user has reached the last page
+                                        _hasReachedLastPage = 
+                                            _totalPages > 0 && 
+                                            _currentPage == _totalPages - 1;
                                       });
                                     },
                                   ),
@@ -347,6 +356,10 @@ class _AgreementScreenState extends State<AgreementScreen> {
                   children: [
                     // Agreement Checkbox
                     Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.05),
                         borderRadius: BorderRadius.circular(10),
@@ -355,27 +368,29 @@ class _AgreementScreenState extends State<AgreementScreen> {
                           width: 1.5,
                         ),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 12,
-                      ),
                       child: Row(
                         children: [
                           Checkbox(
                             value: _isAgreed,
-                            onChanged: (value) {
-                              setState(() {
-                                _isAgreed = value ?? false;
-                              });
-                            },
+                            onChanged: _hasReachedLastPage
+                                ? (value) {
+                                    setState(() {
+                                      _isAgreed = value ?? false;
+                                    });
+                                  }
+                                : null,
                             activeColor: const Color(0xFF10B981),
                             checkColor: Colors.white,
                           ),
                           Expanded(
                             child: Text(
-                              'I agree to the terms and conditions',
+                              _hasReachedLastPage
+                                  ? 'I agree to the terms and conditions'
+                                  : 'Please read through all pages to continue',
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.9),
+                                color: _hasReachedLastPage
+                                    ? Colors.white.withOpacity(0.9)
+                                    : Colors.white.withOpacity(0.5),
                                 fontSize: 14,
                               ),
                             ),
