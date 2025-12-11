@@ -18,7 +18,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0E27), // Match gradient background
-      appBar: const CustomAppBar(title: 'Card Scan', showBackButton: false),
+      appBar: const CustomAppBar(
+        title: 'Card Scan',
+        showBackButton: false,
+        logoImagePath: 'assets/images/center3logo.png',
+      ),
       body: GradientBackground(
         child: SafeArea(
           child: LayoutBuilder(

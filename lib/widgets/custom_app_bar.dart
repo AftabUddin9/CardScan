@@ -5,6 +5,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showBackButton;
   final List<Widget>? actions;
   final Widget? leading;
+  final String? logoImagePath; // Optional custom logo path
 
   const CustomAppBar({
     super.key,
@@ -12,6 +13,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.showBackButton = true,
     this.actions,
     this.leading,
+    this.logoImagePath,
   });
 
   @override
@@ -25,28 +27,37 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                   padding: const EdgeInsets.all(8),
                 )
               : null),
-      title: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Image.asset(
-            'assets/images/center3icon.png',
-            height: 28,
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) {
-              return const SizedBox(width: 0);
-            },
-          ),
-          const SizedBox(width: 12),
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
+      title: logoImagePath != null
+          ? Image.asset(
+              logoImagePath!,
+              height: 32,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return const SizedBox(height: 32);
+              },
+            )
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset(
+                  'assets/images/center3icon.png',
+                  height: 28,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const SizedBox(width: 0);
+                  },
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
       actions: actions,
       backgroundColor: Colors.transparent,
       elevation: 0,
