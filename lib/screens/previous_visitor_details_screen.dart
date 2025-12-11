@@ -6,9 +6,7 @@ import '../widgets/custom_app_bar.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/custom_button.dart';
 import '../models/card_data.dart';
-import '../models/workflow_data.dart';
 import '../services/api_service.dart';
-import 'agreement_screen.dart';
 
 class VisitorDetailsScreen extends StatefulWidget {
   final CardData? parsedData;
@@ -37,93 +35,38 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _companyController = TextEditingController();
-
+  final _hostEmployeeIdController = TextEditingController();
+  
   String? _selectedVisitPurpose;
-  bool _isRecurringVisit = false; // Default to false, user can enable
+  bool _isSubmitting = false;
+  bool _isRecurringVisit = false;
   DateTime? _visitStartDate;
   DateTime? _visitEndDate;
   TimeOfDay? _visitStartTime;
   TimeOfDay? _visitEndTime;
 
-  // Workflow data
-  WorkflowData? _workflowData;
-  bool _isLoadingWorkflow = false;
-  ApprovalSequence? _selectedEscort; // Selected approval sequence (order 1)
-
-  final List<String> _visitPurposes = ['Meeting', 'Site Survey', 'Activity'];
-
-  @override
-  void initState() {
-    super.initState();
-    // Fetch workflow data
-    _fetchWorkflow();
-  }
+  final List<String> _visitPurposes = [
+    'Meeting',
+    'Site Survey',
+    'Activity',
+  ];
 
   @override
   void dispose() {
     _phoneController.dispose();
     _emailController.dispose();
     _companyController.dispose();
+    _hostEmployeeIdController.dispose();
     super.dispose();
-  }
-
-  Future<void> _fetchWorkflow() async {
-    setState(() {
-      _isLoadingWorkflow = true;
-    });
-
-    try {
-      final response = await ApiService.fetchWorkflow();
-      if (response != null) {
-        final workflow = WorkflowData.fromJson(response);
-        setState(() {
-          _workflowData = workflow;
-          // Set default escort (approval sequence with order 1)
-          _selectedEscort = workflow.approvalSequences
-              .where((seq) => seq.order == 1)
-              .firstOrNull;
-          _isLoadingWorkflow = false;
-        });
-      } else {
-        setState(() {
-          _isLoadingWorkflow = false;
-        });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to load workflow data. Please try again.'),
-              backgroundColor: Colors.orange,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      setState(() {
-        _isLoadingWorkflow = false;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading workflow: ${e.toString()}'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
   }
 
   Future<void> _submitCheckIn() async {
     if (_formKey.currentState!.validate()) {
       // Validate that file IDs are present and not the file type strings
-      if (widget.idImageReference.isEmpty ||
-          widget.idImageReference == 'idcard') {
+      if (widget.idImageReference.isEmpty || widget.idImageReference == 'idcard') {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'ID card image reference is missing or invalid. Please scan again.',
-            ),
+            content: Text('ID card image reference is missing or invalid. Please scan again.'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -131,25 +74,10 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
         return;
       }
 
-      if (widget.profilePictureFileId.isEmpty ||
-          widget.profilePictureFileId == 'userselfie') {
+      if (widget.profilePictureFileId.isEmpty || widget.profilePictureFileId == 'userselfie') {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'Profile picture file ID is missing or invalid. Please take a selfie again.',
-            ),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        return;
-      }
-
-      // Validate VMS Info
-      if (_selectedEscort == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please select an escort.'),
+            content: Text('Profile picture file ID is missing or invalid. Please take a selfie again.'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -211,34 +139,100 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
         return;
       }
 
-      // Navigate to Step 4 (Agreement Screen)
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => AgreementScreen(
-            parsedData: widget.parsedData,
-            name: widget.name,
-            idNumber: widget.idNumber,
-            userPhoto: widget.userPhoto,
-            idImageReference: widget.idImageReference,
-            profilePictureFileId: widget.profilePictureFileId,
-            email: _emailController.text.trim(),
-            phone: _phoneController.text.trim().isNotEmpty
-                ? _phoneController.text.trim()
-                : null,
-            company: _companyController.text.trim().isNotEmpty
-                ? _companyController.text.trim()
-                : null,
-            purposeOfVisit: _selectedVisitPurpose!,
-            selectedEscort: _selectedEscort,
-            isRecurringVisit: _isRecurringVisit,
-            visitStartDate: _visitStartDate!,
-            visitEndDate: _visitEndDate,
-            visitStartTime: _visitStartTime!,
-            visitEndTime: _visitEndTime!,
-          ),
-        ),
-      );
+      setState(() => _isSubmitting = true);
+
+      try {
+        // Debug: Print file IDs to verify they are correct
+        print('=== File IDs Debug ===');
+        print('ID Image Reference: ${widget.idImageReference}');
+        print('Profile Picture File ID: ${widget.profilePictureFileId}');
+        print('=====================');
+
+        // Prepare files array
+        final files = [
+          {
+            'fileType': 'NID',
+            'fileId': widget.idImageReference,
+          },
+        ];
+
+        // Prepare dynamic data
+        final dynamicData = {
+          'IdNumber': widget.idNumber,
+          'phone': _phoneController.text.trim().isNotEmpty ? _phoneController.text.trim() : '',
+          'company': _companyController.text.trim().isNotEmpty ? _companyController.text.trim() : '',
+        };
+
+        // Prepare visit schedule (always required)
+        final visitSchedule = <String, dynamic>{
+          'isRecurringVisit': _isRecurringVisit,
+          'visitStartTime': '${_visitStartTime!.hour.toString().padLeft(2, '0')}:${_visitStartTime!.minute.toString().padLeft(2, '0')}',
+          'visitEndTime': '${_visitEndTime!.hour.toString().padLeft(2, '0')}:${_visitEndTime!.minute.toString().padLeft(2, '0')}',
+          'visitStartDate': DateFormat('yyyy-MM-dd').format(_visitStartDate!),
+        };
+        
+        // Only include visitEndDate if recurring visit is enabled
+        if (_isRecurringVisit && _visitEndDate != null) {
+          visitSchedule['visitEndDate'] = DateFormat('yyyy-MM-dd').format(_visitEndDate!);
+        } else {
+          visitSchedule['visitEndDate'] = null;
+        }
+
+        // Call complete check-in API
+        final response = await ApiService.completeCheckIn(
+          name: widget.name,
+          email: _emailController.text.trim(),
+          profilePictureFileId: widget.profilePictureFileId, // Use the actual file ID from API response
+          purposeOfVisit: _selectedVisitPurpose!,
+          files: files,
+          dynamicData: dynamicData,
+          hostEmployeeId: _hostEmployeeIdController.text.trim().isNotEmpty 
+              ? _hostEmployeeIdController.text.trim() 
+              : null,
+          visitSchedule: visitSchedule,
+        );
+
+        setState(() => _isSubmitting = false);
+
+        if (mounted) {
+          if (response != null) {
+            // Print response for debugging
+            print('=== Check-In Response Data ===');
+            print(response);
+            print('=============================');
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Check-in successful!'),
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+            
+            // Navigate back to home or initial screen
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Check-in failed. Please try again.'),
+                backgroundColor: Colors.red,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        setState(() => _isSubmitting = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -246,10 +240,7 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0E27),
-      appBar: const CustomAppBar(
-        title: 'Step 3: Visitor Details',
-        showBackButton: true,
-      ),
+      appBar: const CustomAppBar(title: 'Step 3: Visitor Details', showBackButton: true),
       body: GradientBackground(
         child: SafeArea(
           child: SingleChildScrollView(
@@ -259,53 +250,6 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // VMS Info Section
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withOpacity(0.1)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'VMS Info',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        // Location Dropdown
-                        if (_isLoadingWorkflow)
-                          const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(16.0),
-                              child: CircularProgressIndicator(),
-                            ),
-                          )
-                        else if (_workflowData != null) ...[
-                          _buildSummaryRow('Location:', _workflowData!.name),
-                          _buildSummaryRow(
-                            'Escort:',
-                            _selectedEscort?.name ?? 'N/A',
-                          ),
-                        ] else
-                          Text(
-                            'No workflow data available',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.7),
-                              fontSize: 14,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
                   // Summary Section
                   Container(
                     padding: const EdgeInsets.all(16),
@@ -412,7 +356,7 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
                           ),
                         ),
                         child: DropdownButtonFormField<String>(
-                          initialValue: _selectedVisitPurpose,
+                          value: _selectedVisitPurpose,
                           decoration: InputDecoration(
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 12,
@@ -463,9 +407,21 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
                   ),
                   const SizedBox(height: 16),
 
+                  // Host Employee ID Field
+                  CustomTextField(
+                    label: 'Host Employee ID',
+                    hint: 'Enter host employee ID',
+                    controller: _hostEmployeeIdController,
+                    keyboardType: TextInputType.text,
+                    validator: (value) {
+                      // Optional field, no validation needed
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
                   // Recurring Visit Checkbox
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(10),
@@ -474,6 +430,7 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
                         width: 1.5,
                       ),
                     ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                     child: Row(
                       children: [
                         Checkbox(
@@ -507,47 +464,13 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
                   // Visit Schedule Section (always required)
                   // Visit Start Date
                   _buildDatePickerField(
-                    label: 'Visit Start Date *',
-                    date: _visitStartDate,
-                    onTap: () async {
-                      final pickedDate = await showDatePicker(
-                        context: context,
-                        initialDate: _visitStartDate ?? DateTime.now(),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                        builder: (context, child) {
-                          return Theme(
-                            data: Theme.of(context).copyWith(
-                              colorScheme: const ColorScheme.dark(
-                                primary: Color(0xFF10B981),
-                                onPrimary: Colors.white,
-                                surface: Color(0xFF1A1F3A),
-                                onSurface: Colors.white,
-                              ),
-                            ),
-                            child: child!,
-                          );
-                        },
-                      );
-                      if (pickedDate != null) {
-                        setState(() {
-                          _visitStartDate = pickedDate;
-                        });
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Visit End Date (only shown when recurring visit is enabled)
-                  if (_isRecurringVisit) ...[
-                    _buildDatePickerField(
-                      label: 'Visit End Date *',
-                      date: _visitEndDate,
+                      label: 'Visit Start Date *',
+                      date: _visitStartDate,
                       onTap: () async {
                         final pickedDate = await showDatePicker(
                           context: context,
-                          initialDate: _visitStartDate ?? DateTime.now(),
-                          firstDate: _visitStartDate ?? DateTime.now(),
+                          initialDate: DateTime.now(),
+                          firstDate: DateTime.now(),
                           lastDate: DateTime.now().add(const Duration(days: 365)),
                           builder: (context, child) {
                             return Theme(
@@ -565,83 +488,118 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
                         );
                         if (pickedDate != null) {
                           setState(() {
-                            _visitEndDate = pickedDate;
+                            _visitStartDate = pickedDate;
                           });
                         }
                       },
                     ),
                     const SizedBox(height: 16),
-                  ],
 
-                  // Visit Start Time
-                  _buildTimePickerField(
-                    label: 'Visit Start Time *',
-                    time: _visitStartTime,
-                    onTap: () async {
-                      final pickedTime = await showTimePicker(
-                        context: context,
-                        initialTime: _visitStartTime ?? TimeOfDay.now(),
-                        builder: (context, child) {
-                          return Theme(
-                            data: Theme.of(context).copyWith(
-                              colorScheme: const ColorScheme.dark(
-                                primary: Color(0xFF10B981),
-                                onPrimary: Colors.white,
-                                surface: Color(0xFF1A1F3A),
-                                onSurface: Colors.white,
-                              ),
-                            ),
-                            child: child!,
+                    // Visit End Date (only shown when recurring visit is enabled)
+                    if (_isRecurringVisit) ...[
+                      _buildDatePickerField(
+                        label: 'Visit End Date *',
+                        date: _visitEndDate,
+                        onTap: () async {
+                          final pickedDate = await showDatePicker(
+                            context: context,
+                            initialDate: _visitStartDate ?? DateTime.now(),
+                            firstDate: _visitStartDate ?? DateTime.now(),
+                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                            builder: (context, child) {
+                              return Theme(
+                                data: Theme.of(context).copyWith(
+                                  colorScheme: const ColorScheme.dark(
+                                    primary: Color(0xFF10B981),
+                                    onPrimary: Colors.white,
+                                    surface: Color(0xFF1A1F3A),
+                                    onSurface: Colors.white,
+                                  ),
+                                ),
+                                child: child!,
+                              );
+                            },
                           );
+                          if (pickedDate != null) {
+                            setState(() {
+                              _visitEndDate = pickedDate;
+                            });
+                          }
                         },
-                      );
-                      if (pickedTime != null) {
-                        setState(() {
-                          _visitStartTime = pickedTime;
-                        });
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 16),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
 
-                  // Visit End Time
-                  _buildTimePickerField(
-                    label: 'Visit End Time *',
-                    time: _visitEndTime,
-                    onTap: () async {
-                      final pickedTime = await showTimePicker(
-                        context: context,
-                        initialTime: _visitEndTime ?? TimeOfDay.now(),
-                        builder: (context, child) {
-                          return Theme(
-                            data: Theme.of(context).copyWith(
-                              colorScheme: const ColorScheme.dark(
-                                primary: Color(0xFF10B981),
-                                onPrimary: Colors.white,
-                                surface: Color(0xFF1A1F3A),
-                                onSurface: Colors.white,
+                    // Visit Start Time
+                    _buildTimePickerField(
+                      label: 'Visit Start Time *',
+                      time: _visitStartTime,
+                      onTap: () async {
+                        final pickedTime = await showTimePicker(
+                          context: context,
+                          initialTime: _visitStartTime ?? TimeOfDay.now(),
+                          builder: (context, child) {
+                            return Theme(
+                              data: Theme.of(context).copyWith(
+                                colorScheme: const ColorScheme.dark(
+                                  primary: Color(0xFF10B981),
+                                  onPrimary: Colors.white,
+                                  surface: Color(0xFF1A1F3A),
+                                  onSurface: Colors.white,
+                                ),
                               ),
-                            ),
-                            child: child!,
-                          );
-                        },
-                      );
-                      if (pickedTime != null) {
-                        setState(() {
-                          _visitEndTime = pickedTime;
-                        });
-                      }
-                    },
-                  ),
+                              child: child!,
+                            );
+                          },
+                        );
+                        if (pickedTime != null) {
+                          setState(() {
+                            _visitStartTime = pickedTime;
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Visit End Time
+                    _buildTimePickerField(
+                      label: 'Visit End Time *',
+                      time: _visitEndTime,
+                      onTap: () async {
+                        final pickedTime = await showTimePicker(
+                          context: context,
+                          initialTime: _visitEndTime ?? TimeOfDay.now(),
+                          builder: (context, child) {
+                            return Theme(
+                              data: Theme.of(context).copyWith(
+                                colorScheme: const ColorScheme.dark(
+                                  primary: Color(0xFF10B981),
+                                  onPrimary: Colors.white,
+                                  surface: Color(0xFF1A1F3A),
+                                  onSurface: Colors.white,
+                                ),
+                              ),
+                              child: child!,
+                            );
+                          },
+                        );
+                        if (pickedTime != null) {
+                          setState(() {
+                            _visitEndTime = pickedTime;
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
                   const SizedBox(height: 32),
 
-                  // Submit Button (Navigate to Step 4)
+                  // Submit Button
                   CustomButton(
-                    text: 'Continue to Agreement',
-                    icon: Icons.arrow_forward,
+                    text: 'Complete Check In',
+                    icon: Icons.check_circle,
                     backgroundColor: const Color(0xFF10B981),
-                    onPressed: _submitCheckIn,
-                    isLoading: false,
+                    onPressed: _isSubmitting ? () {} : _submitCheckIn,
+                    isLoading: _isSubmitting,
                   ),
                 ],
               ),
@@ -659,7 +617,7 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 80,
+            width: 60,
             child: Text(
               label,
               style: TextStyle(
@@ -812,3 +770,4 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
     );
   }
 }
+

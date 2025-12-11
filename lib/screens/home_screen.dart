@@ -35,30 +35,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Title and Subtitle Section
-                        // const Text(
-                        //   'Card Scan',
-                        //   textAlign: TextAlign.center,
-                        //   style: TextStyle(
-                        //     color: Colors.white,
-                        //     fontSize: 28,
-                        //     fontWeight: FontWeight.bold,
-                        //     letterSpacing: 1.0,
-                        //     height: 1.2,
-                        //   ),
-                        // ),
-                        // const SizedBox(height: 6),
-                        // Text(
-                        //   'Identity Verification System',
-                        //   textAlign: TextAlign.center,
-                        //   style: TextStyle(
-                        //     color: Colors.white.withOpacity(0.85),
-                        //     fontSize: 13,
-                        //     letterSpacing: 0.5,
-                        //     fontWeight: FontWeight.w400,
-                        //   ),
-                        // ),
-                        // const SizedBox(height: 20),
                         // Action Cards
                         ActionCard(
                           title: 'Check In',
