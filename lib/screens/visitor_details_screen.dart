@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+// import 'package:intl/intl.dart';
 import '../widgets/gradient_background.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/custom_text_field.dart';
@@ -39,11 +39,6 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
   final _companyController = TextEditingController();
 
   String? _selectedVisitPurpose;
-  bool _isRecurringVisit = false; // Default to false, user can enable
-  DateTime? _visitStartDate;
-  DateTime? _visitEndDate;
-  TimeOfDay? _visitStartTime;
-  TimeOfDay? _visitEndTime;
 
   // Workflow data
   WorkflowData? _workflowData;
@@ -157,59 +152,7 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
         return;
       }
 
-      // Validate visit schedule (always required)
-      if (_visitStartDate == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please select visit start date.'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        return;
-      }
-      // Visit end date is only required if recurring visit is enabled
-      if (_isRecurringVisit && _visitEndDate == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please select visit end date.'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        return;
-      }
-      if (_visitStartTime == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please select visit start time.'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        return;
-      }
-      if (_visitEndTime == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please select visit end time.'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        return;
-      }
-      // Validate end date is after start date only if recurring visit is enabled
-      if (_isRecurringVisit && _visitEndDate != null && _visitEndDate!.isBefore(_visitStartDate!)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Visit end date must be after or equal to visit start date.'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        return;
-      }
+      // Visit schedule will be set automatically in AgreementScreen
 
       // Navigate to Step 4 (Agreement Screen)
       Navigator.push(
@@ -231,11 +174,6 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
                 : null,
             purposeOfVisit: _selectedVisitPurpose!,
             selectedEscort: _selectedEscort,
-            isRecurringVisit: _isRecurringVisit,
-            visitStartDate: _visitStartDate!,
-            visitEndDate: _visitEndDate,
-            visitStartTime: _visitStartTime!,
-            visitEndTime: _visitEndTime!,
           ),
         ),
       );
@@ -461,178 +399,6 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-
-                  // Recurring Visit Checkbox
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.2),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Checkbox(
-                          value: _isRecurringVisit,
-                          onChanged: (value) {
-                            setState(() {
-                              _isRecurringVisit = value ?? false;
-                              // Clear visit end date when recurring visit is disabled
-                              if (!_isRecurringVisit) {
-                                _visitEndDate = null;
-                              }
-                            });
-                          },
-                          activeColor: const Color(0xFF10B981),
-                          checkColor: Colors.white,
-                        ),
-                        Expanded(
-                          child: Text(
-                            'Recurring Visit',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.9),
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Visit Schedule Section (always required)
-                  // Visit Start Date
-                  _buildDatePickerField(
-                    label: 'Visit Start Date *',
-                    date: _visitStartDate,
-                    onTap: () async {
-                      final pickedDate = await showDatePicker(
-                        context: context,
-                        initialDate: _visitStartDate ?? DateTime.now(),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                        builder: (context, child) {
-                          return Theme(
-                            data: Theme.of(context).copyWith(
-                              colorScheme: const ColorScheme.dark(
-                                primary: Color(0xFF10B981),
-                                onPrimary: Colors.white,
-                                surface: Color(0xFF1A1F3A),
-                                onSurface: Colors.white,
-                              ),
-                            ),
-                            child: child!,
-                          );
-                        },
-                      );
-                      if (pickedDate != null) {
-                        setState(() {
-                          _visitStartDate = pickedDate;
-                        });
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Visit End Date (only shown when recurring visit is enabled)
-                  if (_isRecurringVisit) ...[
-                    _buildDatePickerField(
-                      label: 'Visit End Date *',
-                      date: _visitEndDate,
-                      onTap: () async {
-                        final pickedDate = await showDatePicker(
-                          context: context,
-                          initialDate: _visitStartDate ?? DateTime.now(),
-                          firstDate: _visitStartDate ?? DateTime.now(),
-                          lastDate: DateTime.now().add(const Duration(days: 365)),
-                          builder: (context, child) {
-                            return Theme(
-                              data: Theme.of(context).copyWith(
-                                colorScheme: const ColorScheme.dark(
-                                  primary: Color(0xFF10B981),
-                                  onPrimary: Colors.white,
-                                  surface: Color(0xFF1A1F3A),
-                                  onSurface: Colors.white,
-                                ),
-                              ),
-                              child: child!,
-                            );
-                          },
-                        );
-                        if (pickedDate != null) {
-                          setState(() {
-                            _visitEndDate = pickedDate;
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-
-                  // Visit Start Time
-                  _buildTimePickerField(
-                    label: 'Visit Start Time *',
-                    time: _visitStartTime,
-                    onTap: () async {
-                      final pickedTime = await showTimePicker(
-                        context: context,
-                        initialTime: _visitStartTime ?? TimeOfDay.now(),
-                        builder: (context, child) {
-                          return Theme(
-                            data: Theme.of(context).copyWith(
-                              colorScheme: const ColorScheme.dark(
-                                primary: Color(0xFF10B981),
-                                onPrimary: Colors.white,
-                                surface: Color(0xFF1A1F3A),
-                                onSurface: Colors.white,
-                              ),
-                            ),
-                            child: child!,
-                          );
-                        },
-                      );
-                      if (pickedTime != null) {
-                        setState(() {
-                          _visitStartTime = pickedTime;
-                        });
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Visit End Time
-                  _buildTimePickerField(
-                    label: 'Visit End Time *',
-                    time: _visitEndTime,
-                    onTap: () async {
-                      final pickedTime = await showTimePicker(
-                        context: context,
-                        initialTime: _visitEndTime ?? TimeOfDay.now(),
-                        builder: (context, child) {
-                          return Theme(
-                            data: Theme.of(context).copyWith(
-                              colorScheme: const ColorScheme.dark(
-                                primary: Color(0xFF10B981),
-                                onPrimary: Colors.white,
-                                surface: Color(0xFF1A1F3A),
-                                onSurface: Colors.white,
-                              ),
-                            ),
-                            child: child!,
-                          );
-                        },
-                      );
-                      if (pickedTime != null) {
-                        setState(() {
-                          _visitEndTime = pickedTime;
-                        });
-                      }
-                    },
-                  ),
                   const SizedBox(height: 32),
 
                   // Submit Button (Navigate to Step 4)
@@ -682,133 +448,133 @@ class _VisitorDetailsScreenState extends State<VisitorDetailsScreen> {
     );
   }
 
-  Widget _buildDatePickerField({
-    required String label,
-    required DateTime? date,
-    required VoidCallback onTap,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.9),
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            letterSpacing: 0.3,
-          ),
-        ),
-        const SizedBox(height: 6),
-        GestureDetector(
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white.withOpacity(0.15),
-                  Colors.white.withOpacity(0.05),
-                ],
-              ),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.2),
-                width: 1.5,
-              ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    date != null
-                        ? DateFormat('yyyy-MM-dd').format(date)
-                        : 'Select date',
-                    style: TextStyle(
-                      color: date != null
-                          ? Colors.white
-                          : Colors.white.withOpacity(0.5),
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-                Icon(
-                  Icons.calendar_today,
-                  color: Colors.white.withOpacity(0.7),
-                  size: 20,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+  // Widget _buildDatePickerField({
+  //   required String label,
+  //   required DateTime? date,
+  //   required VoidCallback onTap,
+  // }) {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       Text(
+  //         label,
+  //         style: TextStyle(
+  //           color: Colors.white.withOpacity(0.9),
+  //           fontSize: 13,
+  //           fontWeight: FontWeight.w500,
+  //           letterSpacing: 0.3,
+  //         ),
+  //       ),
+  //       const SizedBox(height: 6),
+  //       GestureDetector(
+  //         onTap: onTap,
+  //         child: Container(
+  //           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+  //           decoration: BoxDecoration(
+  //             borderRadius: BorderRadius.circular(10),
+  //             gradient: LinearGradient(
+  //               begin: Alignment.topLeft,
+  //               end: Alignment.bottomRight,
+  //               colors: [
+  //                 Colors.white.withOpacity(0.15),
+  //                 Colors.white.withOpacity(0.05),
+  //               ],
+  //             ),
+  //             border: Border.all(
+  //               color: Colors.white.withOpacity(0.2),
+  //               width: 1.5,
+  //             ),
+  //           ),
+  //           child: Row(
+  //             children: [
+  //               Expanded(
+  //                 child: Text(
+  //                   date != null
+  //                       ? DateFormat('yyyy-MM-dd').format(date)
+  //                       : 'Select date',
+  //                   style: TextStyle(
+  //                     color: date != null
+  //                         ? Colors.white
+  //                         : Colors.white.withOpacity(0.5),
+  //                     fontSize: 14,
+  //                   ),
+  //                 ),
+  //               ),
+  //               Icon(
+  //                 Icons.calendar_today,
+  //                 color: Colors.white.withOpacity(0.7),
+  //                 size: 20,
+  //               ),
+  //             ],
+  //           ),
+  //         ),
+  //       ),
+  //     ],
+  //   );
+  // }
 
-  Widget _buildTimePickerField({
-    required String label,
-    required TimeOfDay? time,
-    required VoidCallback onTap,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.9),
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            letterSpacing: 0.3,
-          ),
-        ),
-        const SizedBox(height: 6),
-        GestureDetector(
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white.withOpacity(0.15),
-                  Colors.white.withOpacity(0.05),
-                ],
-              ),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.2),
-                width: 1.5,
-              ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    time != null
-                        ? '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}'
-                        : 'Select time',
-                    style: TextStyle(
-                      color: time != null
-                          ? Colors.white
-                          : Colors.white.withOpacity(0.5),
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-                Icon(
-                  Icons.access_time,
-                  color: Colors.white.withOpacity(0.7),
-                  size: 20,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+  // Widget _buildTimePickerField({
+  //   required String label,
+  //   required TimeOfDay? time,
+  //   required VoidCallback onTap,
+  // }) {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       Text(
+  //         label,
+  //         style: TextStyle(
+  //           color: Colors.white.withOpacity(0.9),
+  //           fontSize: 13,
+  //           fontWeight: FontWeight.w500,
+  //           letterSpacing: 0.3,
+  //         ),
+  //       ),
+  //       const SizedBox(height: 6),
+  //       GestureDetector(
+  //         onTap: onTap,
+  //         child: Container(
+  //           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+  //           decoration: BoxDecoration(
+  //             borderRadius: BorderRadius.circular(10),
+  //             gradient: LinearGradient(
+  //               begin: Alignment.topLeft,
+  //               end: Alignment.bottomRight,
+  //               colors: [
+  //                 Colors.white.withOpacity(0.15),
+  //                 Colors.white.withOpacity(0.05),
+  //               ],
+  //             ),
+  //             border: Border.all(
+  //               color: Colors.white.withOpacity(0.2),
+  //               width: 1.5,
+  //             ),
+  //           ),
+  //           child: Row(
+  //             children: [
+  //               Expanded(
+  //                 child: Text(
+  //                   time != null
+  //                       ? '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}'
+  //                       : 'Select time',
+  //                   style: TextStyle(
+  //                     color: time != null
+  //                         ? Colors.white
+  //                         : Colors.white.withOpacity(0.5),
+  //                     fontSize: 14,
+  //                   ),
+  //                 ),
+  //               ),
+  //               Icon(
+  //                 Icons.access_time,
+  //                 color: Colors.white.withOpacity(0.7),
+  //                 size: 20,
+  //               ),
+  //             ],
+  //           ),
+  //         ),
+  //       ),
+  //     ],
+  //   );
+  // }
 }

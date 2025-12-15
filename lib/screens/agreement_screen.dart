@@ -23,11 +23,6 @@ class AgreementScreen extends StatefulWidget {
   final String? company;
   final String purposeOfVisit;
   final ApprovalSequence? selectedEscort;
-  final bool isRecurringVisit;
-  final DateTime visitStartDate;
-  final DateTime? visitEndDate;
-  final TimeOfDay visitStartTime;
-  final TimeOfDay visitEndTime;
 
   const AgreementScreen({
     super.key,
@@ -42,11 +37,6 @@ class AgreementScreen extends StatefulWidget {
     this.company,
     required this.purposeOfVisit,
     this.selectedEscort,
-    required this.isRecurringVisit,
-    required this.visitStartDate,
-    this.visitEndDate,
-    required this.visitStartTime,
-    required this.visitEndTime,
   });
 
   @override
@@ -129,23 +119,18 @@ class _AgreementScreenState extends State<AgreementScreen> {
         'company': widget.company ?? '',
       };
 
-      // Prepare visit schedule
+      // Prepare visit schedule automatically
+      // Set recurring visit to false, use current date/time, and end time 24h from now
+      final now = DateTime.now();
+      final endTime = now.add(const Duration(hours: 24));
+      
       final visitSchedule = <String, dynamic>{
-        'isRecurringVisit': widget.isRecurringVisit,
-        'visitStartTime':
-            '${widget.visitStartTime.hour.toString().padLeft(2, '0')}:${widget.visitStartTime.minute.toString().padLeft(2, '0')}',
-        'visitEndTime':
-            '${widget.visitEndTime.hour.toString().padLeft(2, '0')}:${widget.visitEndTime.minute.toString().padLeft(2, '0')}',
-        'visitStartDate': DateFormat('yyyy-MM-dd').format(widget.visitStartDate),
+        'isRecurringVisit': false,
+        'visitStartDate': DateFormat('yyyy-MM-dd').format(now),
+        'visitStartTime': '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
+        'visitEndTime': '${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}',
+        'visitEndDate': null, // Not needed for non-recurring visits
       };
-
-      // Only include visitEndDate if recurring visit is enabled
-      if (widget.isRecurringVisit && widget.visitEndDate != null) {
-        visitSchedule['visitEndDate'] = DateFormat('yyyy-MM-dd')
-            .format(widget.visitEndDate!);
-      } else {
-        visitSchedule['visitEndDate'] = null;
-      }
 
       // Use selected escort's approverId as hostEmployeeId
       final hostEmployeeId = widget.selectedEscort?.approverId;
