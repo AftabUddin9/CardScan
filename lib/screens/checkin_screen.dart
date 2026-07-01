@@ -35,14 +35,14 @@ class _CheckInScreenState extends State<CheckInScreen> {
     super.dispose();
   }
 
-  Future<void> _requestPermissions() async {
-    await Permission.camera.request();
+  Future<bool> _ensureCameraPermission() async {
+    final result = await Permission.camera.request();
+    return result.isGranted;
   }
 
   Future<void> _scanWithCamera() async {
-    await _requestPermissions();
-
-    if (!await Permission.camera.isGranted) {
+    final hasPermission = await _ensureCameraPermission();
+    if (!hasPermission) {
       _showError('Camera permission is required');
       return;
     }
